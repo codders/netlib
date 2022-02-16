@@ -1,4 +1,4 @@
-import cStringIO
+import io
 import sys
 from netlib import wsgi, odict
 
@@ -41,7 +41,7 @@ class TestWSGI:
         f.request.host = "foo"
         f.request.port = 80
 
-        wfile = cStringIO.StringIO()
+        wfile = io.StringIO()
         err = w.serve(f, wfile)
         assert ta.called
         assert not err
@@ -55,7 +55,7 @@ class TestWSGI:
         f = tflow()
         f.request.host = "foo"
         f.request.port = 80
-        wfile = cStringIO.StringIO()
+        wfile = io.StringIO()
         w.serve(f, wfile)
         return wfile.getvalue()
 

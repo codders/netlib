@@ -1,6 +1,6 @@
 import os
 from netlib import certutils
-import tutils
+from . import tutils
 
 # class TestDNTree:
 #     def test_simple(self):

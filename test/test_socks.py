@@ -1,8 +1,8 @@
-from cStringIO import StringIO
+from io import StringIO
 import socket
 from nose.plugins.skip import SkipTest
 from netlib import socks, tcp
-import tutils
+from . import tutils
 
 
 def test_client_greeting():

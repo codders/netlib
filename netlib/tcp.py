@@ -1,4 +1,5 @@
 from __future__ import (absolute_import, print_function, division)
+import codecs
 import os
 import select
 import socket
@@ -83,11 +84,11 @@ class SSLKeyLogger(object):
                     if not os.path.isdir(d):
                         os.makedirs(d)
                     self.f = open(self.filename, "ab")
-                    self.f.write("\r\n")
-                client_random = connection.client_random().encode("hex")
-                masterkey = connection.master_key().encode("hex")
+                    self.f.write(b"\r\n")
+                client_random = codecs.encode(connection.client_random(), "hex")
+                masterkey = codecs.encode(connection.master_key(), "hex")
                 self.f.write(
-                    "CLIENT_RANDOM {} {}\r\n".format(
+                    b"CLIENT_RANDOM {} {}\r\n".format(
                         client_random,
                         masterkey))
                 self.f.flush()
@@ -190,7 +191,7 @@ class Reader(_FileLike):
         """
             If length is -1, we read until connection closes.
         """
-        result = ''
+        result = b''
         start = time.time()
         while length == -1 or length > 0:
             if length == -1 or length > self.BLOCKSIZE:
@@ -227,7 +228,7 @@ class Reader(_FileLike):
         return result
 
     def readline(self, size=None):
-        result = ''
+        result = b''
         bytes_read = 0
         while True:
             if size is not None and bytes_read >= size:
@@ -340,7 +341,7 @@ def close_socket(sock):
             sock.settimeout(sock.gettimeout() or 20)
 
             # limit at a megabyte so that we don't read infinitely
-            for _ in xrange(1024 ** 3 // 4096):
+            for _ in range(1024 ** 3 // 4096):
                 # may raise a timeout/disconnect exception.
                 if not sock.recv(4096):
                     break

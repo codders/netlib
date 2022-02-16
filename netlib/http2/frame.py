@@ -1,8 +1,10 @@
+import codecs
 import sys
 import struct
 from hpack.hpack import Encoder, Decoder
 
 from .. import utils
+from functools import reduce
 
 
 class FrameSizeError(Exception):
@@ -80,7 +82,7 @@ class Frame(object):
         stream_id = fields[4]
 
         if raw_header[:4] == b'HTTP':  # pragma no cover
-            print >> sys.stderr, "WARNING: This looks like an HTTP/1 connection!"
+            print("WARNING: This looks like an HTTP/1 connection!", file=sys.stderr)
 
         cls._check_frame_size(length, state)
 
@@ -147,7 +149,7 @@ class DataFrame(Frame):
         f = cls(state=state, length=length, flags=flags, stream_id=stream_id)
 
         if f.flags & Frame.FLAG_PADDED:
-            f.pad_length = struct.unpack('!B', payload[0])[0]
+            f.pad_length = payload[0]
             f.payload = payload[1:-f.pad_length]
         else:
             f.payload = payload
@@ -205,7 +207,7 @@ class HeadersFrame(Frame):
         f = cls(state=state, length=length, flags=flags, stream_id=stream_id)
 
         if f.flags & Frame.FLAG_PADDED:
-            f.pad_length = struct.unpack('!B', payload[0])[0]
+            f.pad_length = payload[0]
             f.header_block_fragment = payload[1:-f.pad_length]
         else:
             f.header_block_fragment = payload[0:]
@@ -252,7 +254,7 @@ class HeadersFrame(Frame):
 
         s.append(
             "header_block_fragment: %s" %
-            self.header_block_fragment.encode('hex'))
+            codecs.encode(self.header_block_fragment, 'hex'))
 
         return "\n".join(s)
 
@@ -369,7 +371,7 @@ class SettingsFrame(Frame):
     def from_bytes(cls, state, length, flags, stream_id, payload):
         f = cls(state=state, length=length, flags=flags, stream_id=stream_id)
 
-        for i in xrange(0, len(payload), 6):
+        for i in range(0, len(payload), 6):
             identifier, value = struct.unpack("!HL", payload[i:i + 6])
             f.settings[identifier] = value
 
@@ -381,7 +383,7 @@ class SettingsFrame(Frame):
                 'SETTINGS frames MUST NOT be associated with a stream.')
 
         b = b''
-        for identifier, value in self.settings.items():
+        for identifier, value in list(self.settings.items()):
             b += struct.pack("!HL", identifier & 0xFF, value)
 
         return b
@@ -389,7 +391,7 @@ class SettingsFrame(Frame):
     def payload_human_readable(self):
         s = []
 
-        for identifier, value in self.settings.items():
+        for identifier, value in list(self.settings.items()):
             s.append("%s: %#x" % (self.SETTINGS.get_name(identifier), value))
 
         if not s:
@@ -460,7 +462,7 @@ class PushPromiseFrame(Frame):
         s.append("promised stream: %#x" % self.promised_stream)
         s.append(
             "header_block_fragment: %s" %
-            self.header_block_fragment.encode('hex'))
+            codecs.encode(self.header_block_fragment, 'hex'))
 
         return "\n".join(s)
 
@@ -608,7 +610,7 @@ class ContinuationFrame(Frame):
         s = []
         s.append(
             "header_block_fragment: %s" %
-            self.header_block_fragment.encode('hex'))
+            codecs.encode(self.header_block_fragment, 'hex'))
         return "\n".join(s)
 
 _FRAME_CLASSES = [

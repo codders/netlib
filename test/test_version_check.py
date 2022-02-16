@@ -1,11 +1,11 @@
-import cStringIO
-import mock
+import io
+from unittest import mock
 from netlib import version_check, version
 
 
 @mock.patch("sys.exit")
 def test_version_check(sexit):
-    fp = cStringIO.StringIO()
+    fp = io.StringIO()
     version_check.version_check(version.IVERSION, fp=fp)
     assert not sexit.called
 

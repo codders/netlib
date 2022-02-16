@@ -82,7 +82,7 @@ class BiDi(object):
     def __init__(self, **kwargs):
         self.names = kwargs
         self.values = {}
-        for k, v in kwargs.items():
+        for k, v in list(kwargs.items()):
             self.values[v] = k
         if len(self.names) != len(self.values):
             raise ValueError("Duplicate values not allowed.")

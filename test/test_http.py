@@ -1,4 +1,4 @@
-import cStringIO
+import io
 import textwrap
 import binascii
 from netlib import http, odict, tcp
@@ -21,7 +21,7 @@ def test_read_chunked():
 
     h = odict.ODictCaseless()
     h["transfer-encoding"] = ["chunked"]
-    s = cStringIO.StringIO("1\r\na\r\n0\r\n")
+    s = io.BytesIO(b"1\r\na\r\n0\r\n")
 
     tutils.raises(
         "malformed chunked body",
@@ -29,34 +29,34 @@ def test_read_chunked():
         s, h, None, "GET", None, True
     )
 
-    s = cStringIO.StringIO("1\r\na\r\n0\r\n\r\n")
+    s = io.BytesIO(b"1\r\na\r\n0\r\n\r\n")
     assert http.read_http_body(s, h, None, "GET", None, True) == "a"
 
-    s = cStringIO.StringIO("\r\n\r\n1\r\na\r\n0\r\n\r\n")
+    s = io.BytesIO(b"\r\n\r\n1\r\na\r\n0\r\n\r\n")
     assert http.read_http_body(s, h, None, "GET", None, True) == "a"
 
-    s = cStringIO.StringIO("\r\n")
+    s = io.BytesIO(b"\r\n")
     tutils.raises(
         "closed prematurely",
         http.read_http_body,
         s, h, None, "GET", None, True
     )
 
-    s = cStringIO.StringIO("1\r\nfoo")
+    s = io.BytesIO(b"1\r\nfoo")
     tutils.raises(
         "malformed chunked body",
         http.read_http_body,
         s, h, None, "GET", None, True
     )
 
-    s = cStringIO.StringIO("foo\r\nfoo")
+    s = io.BytesIO(b"foo\r\nfoo")
     tutils.raises(
         http.HttpError,
         http.read_http_body,
         s, h, None, "GET", None, True
     )
 
-    s = cStringIO.StringIO("5\r\naaaaa\r\n0\r\n\r\n")
+    s = io.BytesIO(b"5\r\naaaaa\r\n0\r\n\r\n")
     tutils.raises("too large", http.read_http_body, s, h, 2, "GET", None, True)
 
 
@@ -85,13 +85,13 @@ def test_get_header_tokens():
 
 def test_read_http_body_request():
     h = odict.ODictCaseless()
-    r = cStringIO.StringIO("testing")
+    r = io.StringIO("testing")
     assert http.read_http_body(r, h, None, "GET", None, True) == ""
 
 
 def test_read_http_body_response():
     h = odict.ODictCaseless()
-    s = tcp.Reader(cStringIO.StringIO("testing"))
+    s = tcp.Reader(io.StringIO("testing"))
     assert http.read_http_body(s, h, None, "GET", 200, False) == "testing"
 
 
@@ -99,12 +99,12 @@ def test_read_http_body():
     # test default case
     h = odict.ODictCaseless()
     h["content-length"] = [7]
-    s = cStringIO.StringIO("testing")
+    s = io.StringIO("testing")
     assert http.read_http_body(s, h, None, "GET", 200, False) == "testing"
 
     # test content length: invalid header
     h["content-length"] = ["foo"]
-    s = cStringIO.StringIO("testing")
+    s = io.StringIO("testing")
     tutils.raises(
         http.HttpError,
         http.read_http_body,
@@ -113,7 +113,7 @@ def test_read_http_body():
 
     # test content length: invalid header #2
     h["content-length"] = [-1]
-    s = cStringIO.StringIO("testing")
+    s = io.StringIO("testing")
     tutils.raises(
         http.HttpError,
         http.read_http_body,
@@ -122,7 +122,7 @@ def test_read_http_body():
 
     # test content length: content length > actual content
     h["content-length"] = [5]
-    s = cStringIO.StringIO("testing")
+    s = io.StringIO("testing")
     tutils.raises(
         http.HttpError,
         http.read_http_body,
@@ -130,16 +130,16 @@ def test_read_http_body():
     )
 
     # test content length: content length < actual content
-    s = cStringIO.StringIO("testing")
+    s = io.StringIO("testing")
     assert len(http.read_http_body(s, h, None, "GET", 200, False)) == 5
 
     # test no content length: limit > actual content
     h = odict.ODictCaseless()
-    s = tcp.Reader(cStringIO.StringIO("testing"))
+    s = tcp.Reader(io.StringIO("testing"))
     assert len(http.read_http_body(s, h, 100, "GET", 200, False)) == 7
 
     # test no content length: limit < actual content
-    s = tcp.Reader(cStringIO.StringIO("testing"))
+    s = tcp.Reader(io.StringIO("testing"))
     tutils.raises(
         http.HttpError,
         http.read_http_body,
@@ -149,7 +149,7 @@ def test_read_http_body():
     # test chunked
     h = odict.ODictCaseless()
     h["transfer-encoding"] = ["chunked"]
-    s = tcp.Reader(cStringIO.StringIO("5\r\naaaaa\r\n0\r\n\r\n"))
+    s = tcp.Reader(io.StringIO("5\r\naaaaa\r\n0\r\n\r\n"))
     assert http.read_http_body(s, h, 100, "GET", 200, False) == "aaaaa"
 
 
@@ -235,7 +235,7 @@ class TestReadHeaders:
         if not verbatim:
             data = textwrap.dedent(data)
             data = data.strip()
-        s = cStringIO.StringIO(data)
+        s = io.StringIO(data)
         return http.read_headers(s)
 
     def test_read_simple(self):
@@ -297,7 +297,7 @@ class TestReadResponseNoContentLength(tservers.ServerTestBase):
 def test_read_response():
     def tst(data, method, limit, include_body=True):
         data = textwrap.dedent(data)
-        r = cStringIO.StringIO(data)
+        r = io.StringIO(data)
         return http.read_response(
             r, method, limit, include_body=include_body
         )
@@ -415,7 +415,7 @@ def test_parse_http_basic_auth():
 
 
 def test_get_request_line():
-    r = cStringIO.StringIO("\nfoo")
+    r = io.StringIO("\nfoo")
     assert http.get_request_line(r) == "foo"
     assert not http.get_request_line(r)
 
@@ -423,7 +423,7 @@ def test_get_request_line():
 class TestReadRequest():
 
     def tst(self, data, **kwargs):
-        r = cStringIO.StringIO(data)
+        r = io.StringIO(data)
         return http.read_request(r, **kwargs)
 
     def test_invalid(self):
@@ -478,8 +478,8 @@ class TestReadRequest():
         assert v.host == "foo.com"
 
     def test_expect(self):
-        w = cStringIO.StringIO()
-        r = cStringIO.StringIO(
+        w = io.StringIO()
+        r = io.StringIO(
             "GET / HTTP/1.1\r\n"
             "Content-Length: 3\r\n"
             "Expect: 100-continue\r\n\r\n"

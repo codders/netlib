@@ -1,5 +1,6 @@
 from __future__ import (absolute_import, print_function, division)
 import itertools
+import codecs
 
 from hpack.hpack import Encoder, Decoder
 from .. import utils
@@ -27,9 +28,9 @@ class HTTP2Protocol(object):
 
     # "PRI * HTTP/2.0\r\n\r\nSM\r\n\r\n"
     CLIENT_CONNECTION_PREFACE =\
-        '505249202a20485454502f322e300d0a0d0a534d0d0a0d0a'.decode('hex')
+        codecs.decode(b'505249202a20485454502f322e300d0a0d0a534d0d0a0d0a', 'hex')
 
-    ALPN_PROTO_H2 = 'h2'
+    ALPN_PROTO_H2 = b'h2'
 
     def __init__(self, tcp_handler, is_server=False, dump_frames=False):
         self.tcp_handler = tcp_handler
@@ -112,7 +113,7 @@ class HTTP2Protocol(object):
         return frm
 
     def _apply_settings(self, settings, hide=False):
-        for setting, value in settings.items():
+        for setting, value in list(settings.items()):
             old_value = self.http2_settings[setting]
             if not old_value:
                 old_value = '-'
@@ -174,8 +175,8 @@ class HTTP2Protocol(object):
             authority += ":%d" % self.tcp_handler.address.port
 
         headers = [
-            (b':method', bytes(method)),
-            (b':path', bytes(path)),
+            (b':method', bytes(method, 'utf-8')),
+            (b':path', bytes(path, 'utf-8')),
             (b':scheme', b'https'),
             (b':authority', authority),
         ] + headers
@@ -229,7 +230,7 @@ class HTTP2Protocol(object):
         if headers is None:
             headers = []
 
-        headers = [(b':status', bytes(str(code)))] + headers
+        headers = [(b':status', bytes(str(code), 'utf-8'))] + headers
 
         if not stream_id:
             stream_id = self.next_stream_id()

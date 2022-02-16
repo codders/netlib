@@ -1,7 +1,7 @@
 from __future__ import (absolute_import, print_function, division)
 import collections
 import string
-import urlparse
+import urllib.parse
 import binascii
 import sys
 from . import odict, utils, tcp, http_status
@@ -55,7 +55,7 @@ def parse_url(url):
             path is valid ASCII
     """
     try:
-        scheme, netloc, path, params, query, fragment = urlparse.urlparse(url)
+        scheme, netloc, path, params, query, fragment = urllib.parse.urlparse(url)
     except ValueError:
         return None
     if not scheme:
@@ -77,7 +77,7 @@ def parse_url(url):
             port = 443
         else:
             port = 80
-    path = urlparse.urlunparse(('', '', path, params, query, fragment))
+    path = urllib.parse.urlunparse(('', '', path, params, query, fragment))
     if not path.startswith("/"):
         path = "/" + path
     if not _is_valid_host(host):
@@ -214,7 +214,7 @@ def assemble_http_basic_auth(scheme, username, password):
 
 def parse_init(line):
     try:
-        method, url, protocol = string.split(line)
+        method, url, protocol = line.split(' ')
     except ValueError:
         return None
     httpversion = parse_http_protocol(protocol)

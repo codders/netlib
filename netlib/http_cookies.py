@@ -24,7 +24,7 @@ variants. Serialization follows RFC6265.
 
 import re
 
-import odict
+from . import odict
 
 
 def _read_until(s, start, term):

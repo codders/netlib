@@ -1,5 +1,5 @@
 from netlib import utils
-import tutils
+from . import tutils
 
 
 def test_bidi():

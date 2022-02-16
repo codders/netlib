@@ -1,6 +1,6 @@
 from __future__ import (absolute_import, print_function, division)
-import cStringIO
-import urllib
+import io
+import urllib.request, urllib.parse, urllib.error
 import time
 import traceback
 from . import odict, tcp
@@ -58,7 +58,7 @@ class WSGIAdaptor(object):
         environ = {
             'wsgi.version': (1, 0),
             'wsgi.url_scheme': flow.request.scheme,
-            'wsgi.input': cStringIO.StringIO(flow.request.content),
+            'wsgi.input': io.StringIO(flow.request.content),
             'wsgi.errors': errsoc,
             'wsgi.multithread': True,
             'wsgi.multiprocess': False,
@@ -66,7 +66,7 @@ class WSGIAdaptor(object):
             'SERVER_SOFTWARE': self.sversion,
             'REQUEST_METHOD': flow.request.method,
             'SCRIPT_NAME': '',
-            'PATH_INFO': urllib.unquote(path_info),
+            'PATH_INFO': urllib.parse.unquote(path_info),
             'QUERY_STRING': query,
             'CONTENT_TYPE': flow.request.headers.get('Content-Type', [''])[0],
             'CONTENT_LENGTH': flow.request.headers.get('Content-Length', [''])[0],
@@ -80,7 +80,7 @@ class WSGIAdaptor(object):
             environ["REMOTE_ADDR"], environ[
                 "REMOTE_PORT"] = flow.client_conn.address()
 
-        for key, value in flow.request.headers.items():
+        for key, value in list(flow.request.headers.items()):
             key = 'HTTP_' + key.upper().replace('-', '_')
             if key not in ('HTTP_CONTENT_TYPE', 'HTTP_CONTENT_LENGTH'):
                 environ[key] = value
@@ -131,7 +131,7 @@ class WSGIAdaptor(object):
             if exc_info:
                 try:
                     if state["headers_sent"]:
-                        raise exc_info[0], exc_info[1], exc_info[2]
+                        raise exc_info[0](exc_info[1]).with_traceback(exc_info[2])
                 finally:
                     exc_info = None
             elif state["status"]:
@@ -140,7 +140,7 @@ class WSGIAdaptor(object):
             state["headers"] = odict.ODictCaseless(headers)
             return write
 
-        errs = cStringIO.StringIO()
+        errs = io.StringIO()
         try:
             dataiter = self.app(
                 self.make_environ(request, errs, **env), start_response

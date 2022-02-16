@@ -1,5 +1,5 @@
 from netlib import odict, http_auth, http
-import tutils
+from . import tutils
 
 
 class TestPassManNonAnon:

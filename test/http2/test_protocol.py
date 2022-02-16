@@ -163,7 +163,7 @@ class TestApplySettings(tservers.ServerTestBase):
             SettingsFrame.SETTINGS.SETTINGS_INITIAL_WINDOW_SIZE: 'deadbeef',
         })
 
-        assert c.rfile.safe_read(2) == "OK"
+        assert c.rfile.safe_read(2) == b"OK"
 
         assert protocol.http2_settings[
             SettingsFrame.SETTINGS.SETTINGS_ENABLE_PUSH] == 'foo'
@@ -186,14 +186,18 @@ class TestCreateHeaders():
         bytes = http2.HTTP2Protocol(self.c)._create_headers(
             headers, 1, end_stream=True)
         assert b''.join(bytes) ==\
-            '000014010500000001824488355217caf3a69a3f87408294e7838c767f'\
-            .decode('hex')
+            codecs.decode(
+                '000014010500000001824488355217caf3a69a3f87408294e7838c767f',
+                'hex'
+            )
 
         bytes = http2.HTTP2Protocol(self.c)._create_headers(
             headers, 1, end_stream=False)
         assert b''.join(bytes) ==\
-            '000014010400000001824488355217caf3a69a3f87408294e7838c767f'\
-            .decode('hex')
+            codecs.decode(
+                '000014010400000001824488355217caf3a69a3f87408294e7838c767f',
+                'hex'
+            )
 
     # TODO: add test for too large header_block_fragments
 
@@ -204,11 +208,11 @@ class TestCreateBody():
 
     def test_create_body_empty(self):
         bytes = self.protocol._create_body(b'', 1)
-        assert b''.join(bytes) == ''.decode('hex')
+        assert b''.join(bytes) == codecs.decode(b'', 'hex')
 
     def test_create_body_single_frame(self):
-        bytes = self.protocol._create_body('foobar', 1)
-        assert b''.join(bytes) == '000006000100000001666f6f626172'.decode('hex')
+        bytes = self.protocol._create_body(b'foobar', 1)
+        assert b''.join(bytes) == codecs.decode(b'000006000100000001666f6f626172', 'hex')
 
     def test_create_body_multiple_frames(self):
         pass
@@ -222,16 +226,22 @@ class TestCreateRequest():
     def test_create_request_simple(self):
         bytes = http2.HTTP2Protocol(self.c).create_request('GET', '/')
         assert len(bytes) == 1
-        assert bytes[0] == '00000d0105000000018284874188089d5c0b8170dc07'.decode('hex')
+        assert bytes[0] == codecs.decode('00000d0105000000018284874188089d5c0b8170dc07', 'hex')
 
     def test_create_request_with_body(self):
         bytes = http2.HTTP2Protocol(self.c).create_request(
-            'GET', '/', [(b'foo', b'bar')], 'foobar')
+            'GET', '/', [(b'foo', b'bar')], b'foobar')
         assert len(bytes) == 2
         assert bytes[0] ==\
-            '0000150104000000018284874188089d5c0b8170dc07408294e7838c767f'.decode('hex')
+            codecs.decode(
+                '0000150104000000018284874188089d5c0b8170dc07408294e7838c767f',
+                'hex'
+            )
         assert bytes[1] ==\
-            '000006000100000001666f6f626172'.decode('hex')
+            codecs.decode(
+                '000006000100000001666f6f626172',
+                'hex'
+            )
 
 
 class TestReadResponse(tservers.ServerTestBase):
@@ -314,13 +324,13 @@ class TestCreateResponse():
         bytes = http2.HTTP2Protocol(self.c, is_server=True).create_response(200)
         assert len(bytes) == 1
         assert bytes[0] ==\
-            '00000101050000000288'.decode('hex')
+            codecs.decode('00000101050000000288', 'hex')
 
     def test_create_response_with_body(self):
         bytes = http2.HTTP2Protocol(self.c, is_server=True).create_response(
-            200, 1, [(b'foo', b'bar')], 'foobar')
+            200, 1, [(b'foo', b'bar')], b'foobar')
         assert len(bytes) == 2
         assert bytes[0] ==\
-            '00000901040000000188408294e7838c767f'.decode('hex')
+            codecs.decode('00000901040000000188408294e7838c767f', 'hex')
         assert bytes[1] ==\
-            '000006000100000001666f6f626172'.decode('hex')
+            codecs.decode('000006000100000001666f6f626172', 'hex')

@@ -11,7 +11,7 @@ import OpenSSL
 
 DEFAULT_EXP = 157680000  # = 24 * 60 * 60 * 365 * 5
 # Generated with "openssl dhparam". It's too slow to generate this on startup.
-DEFAULT_DHPARAM = """
+DEFAULT_DHPARAM = b"""
 -----BEGIN DH PARAMETERS-----
 MIICCAKCAgEAyT6LzpwVFS3gryIo29J5icvgxCnCebcdSe/NHMkD8dKJf8suFCg3
 O2+dguLakSVif/t6dhImxInJk230HmfC8q93hdcg/j8rLGJYDKu3ik6H//BAHKIv
@@ -178,7 +178,7 @@ class CertStore(object):
             with open(path, "wb") as f:
                 f.write(DEFAULT_DHPARAM)
 
-        bio = OpenSSL.SSL._lib.BIO_new_file(path, b"r")
+        bio = OpenSSL.SSL._lib.BIO_new_file(path.encode("utf-8"), b"r")
         if bio != OpenSSL.SSL._ffi.NULL:
             bio = OpenSSL.SSL._ffi.gc(bio, OpenSSL.SSL._lib.BIO_free)
             dh = OpenSSL.SSL._lib.PEM_read_bio_DHparams(
@@ -314,7 +314,7 @@ class CertStore(object):
         potential_keys.append((commonname, tuple(sans)))
 
         name = next(
-            itertools.ifilter(
+            filter(
                 lambda key: key in self.certs,
                 potential_keys),
             None)
