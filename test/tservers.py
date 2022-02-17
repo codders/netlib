@@ -23,6 +23,7 @@ class ServerThread(threading.Thread):
 class ServerTestBase(object):
     ssl = None
     handler = None
+    port = None
     addr = ("localhost", 0)
 
     @classmethod

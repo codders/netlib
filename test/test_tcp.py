@@ -47,7 +47,7 @@ class ALPNHandler(tcp.BaseHandler):
     def handle(self):
         alp = self.get_alpn_proto_negotiated()
         if alp:
-            self.wfile.write("%s" % alp)
+            self.wfile.write(b"%s" % alp)
         else:
             self.wfile.write("NONE")
         self.wfile.flush()
@@ -117,6 +117,7 @@ class TestEcho(tservers.ServerTestBase):
         testval = b"echo!\n"
         c = tcp.TCPClient(("127.0.0.1", self.port))
         c.connect()
+        c.wfile.start_log()
         c.wfile.write(testval)
         c.wfile.flush()
         assert c.rfile.readline() == testval
@@ -494,7 +495,7 @@ class TestTimeOut(tservers.ServerTestBase):
 class TestALPNClient(tservers.ServerTestBase):
     handler = ALPNHandler
     ssl = dict(
-        alpn_select="bar"
+        alpn_select=b"bar"
     )
 
     if OpenSSL._util.lib.Cryptography_HAS_ALPN:
@@ -503,7 +504,8 @@ class TestALPNClient(tservers.ServerTestBase):
             c.connect()
             c.convert_to_ssl(alpn_protos=[b"foo", b"bar", b"fasel"])
             assert c.get_alpn_proto_negotiated() == b"bar"
-            assert c.rfile.readline().strip() == b"bar"
+            res = c.rfile.readline().strip()
+            assert res == b"bar"
 
         def test_no_alpn(self):
             c = tcp.TCPClient(("127.0.0.1", self.port))
@@ -557,7 +559,9 @@ class TestDHParams(tservers.ServerTestBase):
         c.connect()
         c.convert_to_ssl()
         ret = c.get_current_cipher()
-        assert ret[0] == b"DHE-RSA-AES256-SHA"
+        # In OpenSSL 1.1.1 setting the cipher list will always return TLS 1.3
+        # ciphers
+        assert ret[0] == "TLS_AES_256_GCM_SHA384"
 
     def test_create_dhparams(self):
         with tutils.tmpdir() as d:

@@ -454,7 +454,7 @@ class _Connection(object):
                 # select application layer protocol
                 def alpn_select_callback(conn_, options):
                     if alpn_select in options:
-                        return bytes(alpn_select)
+                        return alpn_select
                     else:  # pragma no cover
                         return options[0]
                 context.set_alpn_select_callback(alpn_select_callback)
@@ -671,7 +671,7 @@ class BaseHandler(_Connection):
         if OpenSSL._util.lib.Cryptography_HAS_ALPN and self.ssl_established:
             return self.connection.get_alpn_proto_negotiated()
         else:
-            return ""
+            return b""
 
 
 class TCPServer(object):
