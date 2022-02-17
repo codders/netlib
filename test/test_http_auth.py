@@ -21,7 +21,7 @@ class TestPassManHtpasswd:
     def test_simple(self):
         pm = http_auth.PassManHtpasswd(tutils.test_data.path("data/htpasswd"))
 
-        vals = ("basic", "test", "test")
+        vals = (b"basic", b"test", b"test")
         http.assemble_http_basic_auth(*vals)
         assert pm.test("test", "test")
         assert not pm.test("test", "foo")
@@ -60,7 +60,7 @@ class TestBasicProxyAuth:
         ba = http_auth.BasicProxyAuth(http_auth.PassManNonAnon(), "test")
 
         hdrs = odict.ODictCaseless()
-        vals = ("basic", "foo", "bar")
+        vals = (b"basic", b"foo", b"bar")
         hdrs[ba.AUTH_HEADER] = [http.assemble_http_basic_auth(*vals)]
         assert ba.authenticate(hdrs)
 
@@ -73,12 +73,12 @@ class TestBasicProxyAuth:
         hdrs[ba.AUTH_HEADER] = ["foo"]
         assert not ba.authenticate(hdrs)
 
-        vals = ("foo", "foo", "bar")
+        vals = (b"foo", b"foo", b"bar")
         hdrs[ba.AUTH_HEADER] = [http.assemble_http_basic_auth(*vals)]
         assert not ba.authenticate(hdrs)
 
         ba = http_auth.BasicProxyAuth(http_auth.PassMan(), "test")
-        vals = ("basic", "foo", "bar")
+        vals = (b"basic", b"foo", b"bar")
         hdrs[ba.AUTH_HEADER] = [http.assemble_http_basic_auth(*vals)]
         assert not ba.authenticate(hdrs)
 

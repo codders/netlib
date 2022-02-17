@@ -42,29 +42,29 @@ def create_ca(o, cn, exp):
     cert.set_pubkey(key)
     cert.add_extensions([
         OpenSSL.crypto.X509Extension(
-            "basicConstraints",
+            b"basicConstraints",
             True,
-            "CA:TRUE"
+            b"CA:TRUE"
         ),
         OpenSSL.crypto.X509Extension(
-            "nsCertType",
+            b"nsCertType",
             False,
-            "sslCA"
+            b"sslCA"
         ),
         OpenSSL.crypto.X509Extension(
-            "extendedKeyUsage",
+            b"extendedKeyUsage",
             False,
-            "serverAuth,clientAuth,emailProtection,timeStamping,msCodeInd,msCodeCom,msCTLSign,msSGC,msEFS,nsSGC"
+            b"serverAuth,clientAuth,emailProtection,timeStamping,msCodeInd,msCodeCom,msCTLSign,msSGC,msEFS,nsSGC"
         ),
         OpenSSL.crypto.X509Extension(
-            "keyUsage",
+            b"keyUsage",
             True,
-            "keyCertSign, cRLSign"
+            b"keyCertSign, cRLSign"
         ),
         OpenSSL.crypto.X509Extension(
-            "subjectKeyIdentifier",
+            b"subjectKeyIdentifier",
             False,
-            "hash",
+            b"hash",
             subject=cert
         ),
     ])
@@ -85,8 +85,8 @@ def dummy_cert(privkey, cacert, commonname, sans):
     """
     ss = []
     for i in sans:
-        ss.append("DNS: %s" % i)
-    ss = ", ".join(ss)
+        ss.append(b"DNS: %s" % i)
+    ss = b", ".join(ss)
 
     cert = OpenSSL.crypto.X509()
     cert.gmtime_adj_notBefore(-3600 * 48)
@@ -97,7 +97,7 @@ def dummy_cert(privkey, cacert, commonname, sans):
     if ss:
         cert.set_version(2)
         cert.add_extensions(
-            [OpenSSL.crypto.X509Extension("subjectAltName", False, ss)])
+            [OpenSSL.crypto.X509Extension(b"subjectAltName", False, ss)])
     cert.set_pubkey(cacert.get_pubkey())
     cert.sign(privkey, "sha256")
     return SSLCert(cert)
@@ -285,14 +285,14 @@ class CertStore(object):
 
     @staticmethod
     def asterisk_forms(dn):
-        parts = dn.split(".")
+        parts = dn.split(b".")
         parts.reverse()
-        curr_dn = ""
+        curr_dn = b""
         dn_forms = ["*"]
         for part in parts[:-1]:
-            curr_dn = "." + part + curr_dn  # .example.com
-            dn_forms.append("*" + curr_dn)   # *.example.com
-        if parts[-1] != "*":
+            curr_dn = b"." + part + curr_dn  # .example.com
+            dn_forms.append(b"*" + curr_dn)   # *.example.com
+        if parts[-1] != b"*":
             dn_forms.append(parts[-1] + curr_dn)
         return dn_forms
 
@@ -390,12 +390,12 @@ class SSLCert(object):
     @property
     def notbefore(self):
         t = self.x509.get_notBefore()
-        return datetime.datetime.strptime(t, "%Y%m%d%H%M%SZ")
+        return datetime.datetime.strptime(t.decode("utf-8"), "%Y%m%d%H%M%SZ")
 
     @property
     def notafter(self):
         t = self.x509.get_notAfter()
-        return datetime.datetime.strptime(t, "%Y%m%d%H%M%SZ")
+        return datetime.datetime.strptime(t.decode("utf-8"), "%Y%m%d%H%M%SZ")
 
     @property
     def has_expired(self):
@@ -425,7 +425,7 @@ class SSLCert(object):
     def cn(self):
         c = None
         for i in self.subject:
-            if i[0] == "CN":
+            if i[0] == b"CN":
                 c = i[1]
         return c
 
@@ -434,7 +434,7 @@ class SSLCert(object):
         altnames = []
         for i in range(self.x509.get_extension_count()):
             ext = self.x509.get_extension(i)
-            if ext.get_short_name() == "subjectAltName":
+            if ext.get_short_name() == b"subjectAltName":
                 try:
                     dec = decode(ext.get_data(), asn1Spec=_GeneralNames())
                 except PyAsn1Error:

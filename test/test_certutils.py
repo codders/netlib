@@ -37,10 +37,10 @@ class TestCertStore:
     def test_create_explicit(self):
         with tutils.tmpdir() as d:
             ca = certutils.CertStore.from_store(d, "test")
-            assert ca.get_cert("foo", [])
+            assert ca.get_cert(b"foo", [])
 
             ca2 = certutils.CertStore.from_store(d, "test")
-            assert ca2.get_cert("foo", [])
+            assert ca2.get_cert(b"foo", [])
 
             assert ca.default_ca.get_serial_number(
             ) == ca2.default_ca.get_serial_number()
@@ -48,11 +48,11 @@ class TestCertStore:
     def test_create_tmp(self):
         with tutils.tmpdir() as d:
             ca = certutils.CertStore.from_store(d, "test")
-            assert ca.get_cert("foo.com", [])
-            assert ca.get_cert("foo.com", [])
-            assert ca.get_cert("*.foo.com", [])
+            assert ca.get_cert(b"foo.com", [])
+            assert ca.get_cert(b"foo.com", [])
+            assert ca.get_cert(b"*.foo.com", [])
 
-            r = ca.get_cert("*.foo.com", [])
+            r = ca.get_cert(b"*.foo.com", [])
             assert r[1] == ca.default_privatekey
 
     def test_add_cert(self):
@@ -62,18 +62,18 @@ class TestCertStore:
     def test_sans(self):
         with tutils.tmpdir() as d:
             ca = certutils.CertStore.from_store(d, "test")
-            c1 = ca.get_cert("foo.com", ["*.bar.com"])
-            ca.get_cert("foo.bar.com", [])
+            c1 = ca.get_cert(b"foo.com", [b"*.bar.com"])
+            ca.get_cert(b"foo.bar.com", [])
             # assert c1 == c2
-            c3 = ca.get_cert("bar.com", [])
+            c3 = ca.get_cert(b"bar.com", [])
             assert not c1 == c3
 
     def test_sans_change(self):
         with tutils.tmpdir() as d:
             ca = certutils.CertStore.from_store(d, "test")
-            ca.get_cert("foo.com", ["*.bar.com"])
-            cert, key, chain_file = ca.get_cert("foo.bar.com", ["*.baz.com"])
-            assert "*.baz.com" in cert.altnames
+            ca.get_cert(b"foo.com", [b"*.bar.com"])
+            cert, key, chain_file = ca.get_cert(b"foo.bar.com", [b"*.baz.com"])
+            assert b"*.baz.com" in cert.altnames
 
     def test_overrides(self):
         with tutils.tmpdir() as d:
@@ -82,14 +82,14 @@ class TestCertStore:
             assert not ca1.default_ca.get_serial_number(
             ) == ca2.default_ca.get_serial_number()
 
-            dc = ca2.get_cert("foo.com", ["sans.example.com"])
+            dc = ca2.get_cert(b"foo.com", [b"sans.example.com"])
             dcp = os.path.join(d, "dc")
             f = open(dcp, "wb")
             f.write(dc[0].to_pem())
             f.close()
-            ca1.add_cert_file("foo.com", dcp)
+            ca1.add_cert_file(b"foo.com", dcp)
 
-            ret = ca1.get_cert("foo.com", [])
+            ret = ca1.get_cert(b"foo.com", [])
             assert ret[0].serial == dc[0].serial
 
 
@@ -101,10 +101,10 @@ class TestDummyCert:
             r = certutils.dummy_cert(
                 ca.default_privatekey,
                 ca.default_ca,
-                "foo.com",
-                ["one.com", "two.com", "*.three.com"]
+                b"foo.com",
+                [b"one.com", b"two.com", b"*.three.com"]
             )
-            assert r.cn == "foo.com"
+            assert r.cn == b"foo.com"
 
 
 class TestSSLCert:
@@ -113,13 +113,13 @@ class TestSSLCert:
         with open(tutils.test_data.path("data/text_cert"), "rb") as f:
             d = f.read()
         c1 = certutils.SSLCert.from_pem(d)
-        assert c1.cn == "google.com"
+        assert c1.cn == b"google.com"
         assert len(c1.altnames) == 436
 
         with open(tutils.test_data.path("data/text_cert_2"), "rb") as f:
             d = f.read()
         c2 = certutils.SSLCert.from_pem(d)
-        assert c2.cn == "www.inode.co.nz"
+        assert c2.cn == b"www.inode.co.nz"
         assert len(c2.altnames) == 2
         assert c2.digest("sha1")
         assert c2.notbefore

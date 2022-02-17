@@ -201,15 +201,15 @@ def parse_http_basic_auth(s):
         user = binascii.a2b_base64(words[1])
     except binascii.Error:
         return None
-    parts = user.split(':')
+    parts = user.split(b':')
     if len(parts) != 2:
         return None
     return scheme, parts[0], parts[1]
 
 
 def assemble_http_basic_auth(scheme, username, password):
-    v = binascii.b2a_base64(username + ":" + password)
-    return scheme + " " + v
+    v = binascii.b2a_base64(username + b":" + password)
+    return scheme + b" " + v
 
 
 def parse_init(line):

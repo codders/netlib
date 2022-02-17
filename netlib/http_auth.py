@@ -50,7 +50,7 @@ class BasicProxyAuth(NullProxyAuth):
         if not parts:
             return False
         scheme, username, password = parts
-        if scheme.lower() != 'basic':
+        if scheme.lower() != b'basic':
             return False
         if not self.password_manager.test(username, password):
             return False
