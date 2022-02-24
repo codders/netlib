@@ -55,23 +55,23 @@ class TestPerformServerConnectionPreface(tservers.ServerTestBase):
         def handle(self):
             # send magic
             self.wfile.write(
-                '505249202a20485454502f322e300d0a0d0a534d0d0a0d0a'.decode('hex'))
+                codecs.decode('505249202a20485454502f322e300d0a0d0a534d0d0a0d0a', 'hex'))
             self.wfile.flush()
 
             # send empty settings frame
-            self.wfile.write('000000040000000000'.decode('hex'))
+            self.wfile.write(codecs.decode('000000040000000000', 'hex'))
             self.wfile.flush()
 
             # check empty settings frame
             assert self.rfile.read(9) ==\
-                '000000040000000000'.decode('hex')
+                codecs.decode('000000040000000000', 'hex')
 
             # check settings acknowledgement
             assert self.rfile.read(9) == \
-                '000000040100000000'.decode('hex')
+                codecs.decode('000000040100000000', 'hex')
 
             # send settings acknowledgement
-            self.wfile.write('000000040100000000'.decode('hex'))
+            self.wfile.write(codecs.decode('000000040100000000', 'hex'))
             self.wfile.flush()
 
     def test_perform_server_connection_preface(self):
@@ -87,22 +87,22 @@ class TestPerformClientConnectionPreface(tservers.ServerTestBase):
         def handle(self):
             # check magic
             assert self.rfile.read(24) ==\
-                '505249202a20485454502f322e300d0a0d0a534d0d0a0d0a'.decode('hex')
+                codecs.decode('505249202a20485454502f322e300d0a0d0a534d0d0a0d0a', 'hex')
 
             # check empty settings frame
             assert self.rfile.read(9) ==\
-                '000000040000000000'.decode('hex')
+                codecs.decode('000000040000000000', 'hex')
 
             # send empty settings frame
-            self.wfile.write('000000040000000000'.decode('hex'))
+            self.wfile.write(codecs.decode('000000040000000000', 'hex'))
             self.wfile.flush()
 
             # check settings acknowledgement
             assert self.rfile.read(9) == \
-                '000000040100000000'.decode('hex')
+                codecs.decode('000000040100000000', 'hex')
 
             # send settings acknowledgement
-            self.wfile.write('000000040100000000'.decode('hex'))
+            self.wfile.write(codecs.decode('000000040100000000', 'hex'))
             self.wfile.flush()
 
     def test_perform_client_connection_preface(self):
@@ -145,7 +145,7 @@ class TestApplySettings(tservers.ServerTestBase):
 
         def handle(self):
             # check settings acknowledgement
-            assert self.rfile.read(9) == '000000040100000000'.decode('hex')
+            assert self.rfile.read(9) == codecs.decode('000000040100000000', 'hex')
             self.wfile.write("OK")
             self.wfile.flush()
 
@@ -249,9 +249,9 @@ class TestReadResponse(tservers.ServerTestBase):
 
         def handle(self):
             self.wfile.write(
-                b'00000801040000000188628594e78c767f'.decode('hex'))
+                codecs.decode('00000801040000000188628594e78c767f', 'hex'))
             self.wfile.write(
-                b'000006000100000001666f6f626172'.decode('hex'))
+                codecs.decode('000006000100000001666f6f626172', 'hex'))
             self.wfile.flush()
 
     ssl = True
@@ -274,7 +274,7 @@ class TestReadEmptyResponse(tservers.ServerTestBase):
 
         def handle(self):
             self.wfile.write(
-                b'00000801050000000188628594e78c767f'.decode('hex'))
+                codecs.decode('00000801050000000188628594e78c767f', 'hex'))
             self.wfile.flush()
 
     ssl = True
@@ -297,9 +297,9 @@ class TestReadRequest(tservers.ServerTestBase):
 
         def handle(self):
             self.wfile.write(
-                b'000003010400000001828487'.decode('hex'))
+                codecs.decode('000003010400000001828487', 'hex'))
             self.wfile.write(
-                b'000006000100000001666f6f626172'.decode('hex'))
+                codecs.decode('000006000100000001666f6f626172', 'hex'))
             self.wfile.flush()
 
     ssl = True
