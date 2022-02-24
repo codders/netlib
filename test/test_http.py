@@ -30,10 +30,10 @@ def test_read_chunked():
     )
 
     s = io.BytesIO(b"1\r\na\r\n0\r\n\r\n")
-    assert http.read_http_body(s, h, None, "GET", None, True) == "a"
+    assert http.read_http_body(s, h, None, "GET", None, True) == b"a"
 
     s = io.BytesIO(b"\r\n\r\n1\r\na\r\n0\r\n\r\n")
-    assert http.read_http_body(s, h, None, "GET", None, True) == "a"
+    assert http.read_http_body(s, h, None, "GET", None, True) == b"a"
 
     s = io.BytesIO(b"\r\n")
     tutils.raises(
@@ -86,25 +86,25 @@ def test_get_header_tokens():
 def test_read_http_body_request():
     h = odict.ODictCaseless()
     r = io.StringIO("testing")
-    assert http.read_http_body(r, h, None, "GET", None, True) == ""
+    assert http.read_http_body(r, h, None, "GET", None, True) == b""
 
 
 def test_read_http_body_response():
     h = odict.ODictCaseless()
-    s = tcp.Reader(io.StringIO("testing"))
-    assert http.read_http_body(s, h, None, "GET", 200, False) == "testing"
+    s = tcp.Reader(io.BytesIO(b"testing"))
+    assert http.read_http_body(s, h, None, "GET", 200, False) == b"testing"
 
 
 def test_read_http_body():
     # test default case
     h = odict.ODictCaseless()
-    h["content-length"] = [7]
-    s = io.StringIO("testing")
-    assert http.read_http_body(s, h, None, "GET", 200, False) == "testing"
+    h[b"content-length"] = [7]
+    s = io.BytesIO(b"testing")
+    assert http.read_http_body(s, h, None, "GET", 200, False) == b"testing"
 
     # test content length: invalid header
-    h["content-length"] = ["foo"]
-    s = io.StringIO("testing")
+    h[b"content-length"] = ["foo"]
+    s = io.BytesIO(b"testing")
     tutils.raises(
         http.HttpError,
         http.read_http_body,
@@ -112,8 +112,8 @@ def test_read_http_body():
     )
 
     # test content length: invalid header #2
-    h["content-length"] = [-1]
-    s = io.StringIO("testing")
+    h[b"content-length"] = [-1]
+    s = io.BytesIO(b"testing")
     tutils.raises(
         http.HttpError,
         http.read_http_body,
@@ -121,8 +121,8 @@ def test_read_http_body():
     )
 
     # test content length: content length > actual content
-    h["content-length"] = [5]
-    s = io.StringIO("testing")
+    h[b"content-length"] = [5]
+    s = io.BytesIO(b"testing")
     tutils.raises(
         http.HttpError,
         http.read_http_body,
@@ -130,16 +130,16 @@ def test_read_http_body():
     )
 
     # test content length: content length < actual content
-    s = io.StringIO("testing")
+    s = io.BytesIO(b"testing")
     assert len(http.read_http_body(s, h, None, "GET", 200, False)) == 5
 
     # test no content length: limit > actual content
     h = odict.ODictCaseless()
-    s = tcp.Reader(io.StringIO("testing"))
+    s = tcp.Reader(io.BytesIO(b"testing"))
     assert len(http.read_http_body(s, h, 100, "GET", 200, False)) == 7
 
     # test no content length: limit < actual content
-    s = tcp.Reader(io.StringIO("testing"))
+    s = tcp.Reader(io.BytesIO(b"testing"))
     tutils.raises(
         http.HttpError,
         http.read_http_body,
@@ -149,22 +149,22 @@ def test_read_http_body():
     # test chunked
     h = odict.ODictCaseless()
     h["transfer-encoding"] = ["chunked"]
-    s = tcp.Reader(io.StringIO("5\r\naaaaa\r\n0\r\n\r\n"))
-    assert http.read_http_body(s, h, 100, "GET", 200, False) == "aaaaa"
+    s = tcp.Reader(io.BytesIO(b"5\r\naaaaa\r\n0\r\n\r\n"))
+    assert http.read_http_body(s, h, 100, "GET", 200, False) == b"aaaaa"
 
 
 def test_expected_http_body_size():
     # gibber in the content-length field
     h = odict.ODictCaseless()
-    h["content-length"] = ["foo"]
+    h[b"content-length"] = ["foo"]
     assert http.expected_http_body_size(h, False, "GET", 200) is None
     # negative number in the content-length field
     h = odict.ODictCaseless()
-    h["content-length"] = ["-7"]
+    h[b"content-length"] = ["-7"]
     assert http.expected_http_body_size(h, False, "GET", 200) is None
     # explicit length
     h = odict.ODictCaseless()
-    h["content-length"] = ["5"]
+    h[b"content-length"] = ["5"]
     assert http.expected_http_body_size(h, False, "GET", 200) == 5
     # no length
     h = odict.ODictCaseless()
@@ -175,103 +175,103 @@ def test_expected_http_body_size():
 
 
 def test_parse_http_protocol():
-    assert http.parse_http_protocol("HTTP/1.1") == (1, 1)
-    assert http.parse_http_protocol("HTTP/0.0") == (0, 0)
-    assert not http.parse_http_protocol("HTTP/a.1")
-    assert not http.parse_http_protocol("HTTP/1.a")
-    assert not http.parse_http_protocol("foo/0.0")
-    assert not http.parse_http_protocol("HTTP/x")
+    assert http.parse_http_protocol(b"HTTP/1.1") == (1, 1)
+    assert http.parse_http_protocol(b"HTTP/0.0") == (0, 0)
+    assert not http.parse_http_protocol(b"HTTP/a.1")
+    assert not http.parse_http_protocol(b"HTTP/1.a")
+    assert not http.parse_http_protocol(b"foo/0.0")
+    assert not http.parse_http_protocol(b"HTTP/x")
 
 
 def test_parse_init_connect():
-    assert http.parse_init_connect("CONNECT host.com:443 HTTP/1.0")
-    assert not http.parse_init_connect("C\xfeONNECT host.com:443 HTTP/1.0")
-    assert not http.parse_init_connect("CONNECT \0host.com:443 HTTP/1.0")
-    assert not http.parse_init_connect("CONNECT host.com:444444 HTTP/1.0")
-    assert not http.parse_init_connect("bogus")
-    assert not http.parse_init_connect("GET host.com:443 HTTP/1.0")
-    assert not http.parse_init_connect("CONNECT host.com443 HTTP/1.0")
-    assert not http.parse_init_connect("CONNECT host.com:443 foo/1.0")
-    assert not http.parse_init_connect("CONNECT host.com:foo HTTP/1.0")
+    assert http.parse_init_connect(b"CONNECT host.com:443 HTTP/1.0")
+    assert not http.parse_init_connect(b"C\xfeONNECT host.com:443 HTTP/1.0")
+    assert not http.parse_init_connect(b"CONNECT \0host.com:443 HTTP/1.0")
+    assert not http.parse_init_connect(b"CONNECT host.com:444444 HTTP/1.0")
+    assert not http.parse_init_connect(b"bogus")
+    assert not http.parse_init_connect(b"GET host.com:443 HTTP/1.0")
+    assert not http.parse_init_connect(b"CONNECT host.com443 HTTP/1.0")
+    assert not http.parse_init_connect(b"CONNECT host.com:443 foo/1.0")
+    assert not http.parse_init_connect(b"CONNECT host.com:foo HTTP/1.0")
 
 
 def test_parse_init_proxy():
-    u = "GET http://foo.com:8888/test HTTP/1.1"
+    u = b"GET http://foo.com:8888/test HTTP/1.1"
     m, s, h, po, pa, httpversion = http.parse_init_proxy(u)
-    assert m == "GET"
-    assert s == "http"
-    assert h == "foo.com"
+    assert m == b"GET"
+    assert s == b"http"
+    assert h == b"foo.com"
     assert po == 8888
-    assert pa == "/test"
+    assert pa == b"/test"
     assert httpversion == (1, 1)
 
-    u = "G\xfeET http://foo.com:8888/test HTTP/1.1"
+    u = b"G\xfeET http://foo.com:8888/test HTTP/1.1"
     assert not http.parse_init_proxy(u)
 
-    assert not http.parse_init_proxy("invalid")
-    assert not http.parse_init_proxy("GET invalid HTTP/1.1")
-    assert not http.parse_init_proxy("GET http://foo.com:8888/test foo/1.1")
+    assert not http.parse_init_proxy(b"invalid")
+    assert not http.parse_init_proxy(b"GET invalid HTTP/1.1")
+    assert not http.parse_init_proxy(b"GET http://foo.com:8888/test foo/1.1")
 
 
 def test_parse_init_http():
-    u = "GET /test HTTP/1.1"
+    u = b"GET /test HTTP/1.1"
     m, u, httpversion = http.parse_init_http(u)
-    assert m == "GET"
-    assert u == "/test"
+    assert m == b"GET"
+    assert u == b"/test"
     assert httpversion == (1, 1)
 
-    u = "G\xfeET /test HTTP/1.1"
+    u = b"G\xfeET /test HTTP/1.1"
     assert not http.parse_init_http(u)
 
-    assert not http.parse_init_http("invalid")
-    assert not http.parse_init_http("GET invalid HTTP/1.1")
-    assert not http.parse_init_http("GET /test foo/1.1")
-    assert not http.parse_init_http("GET /test\xc0 HTTP/1.1")
+    assert not http.parse_init_http(b"invalid")
+    assert not http.parse_init_http(b"GET invalid HTTP/1.1")
+    assert not http.parse_init_http(b"GET /test foo/1.1")
+    assert not http.parse_init_http(b"GET /test\xc0 HTTP/1.1")
 
 
 class TestReadHeaders:
 
     def _read(self, data, verbatim=False):
         if not verbatim:
-            data = textwrap.dedent(data)
-            data = data.strip()
-        s = io.StringIO(data)
+            data = textwrap.dedent(data.decode("utf-8"))
+            data = data.strip().encode("utf-8")
+        s = io.BytesIO(data)
         return http.read_headers(s)
 
     def test_read_simple(self):
-        data = """
+        data = b"""
             Header: one
             Header2: two
             \r\n
         """
         h = self._read(data)
-        assert h.lst == [["Header", "one"], ["Header2", "two"]]
+        assert h.lst == [[b"Header", b"one"], [b"Header2", b"two"]]
 
     def test_read_multi(self):
-        data = """
+        data = b"""
             Header: one
             Header: two
             \r\n
         """
         h = self._read(data)
-        assert h.lst == [["Header", "one"], ["Header", "two"]]
+        assert h.lst == [[b"Header", b"one"], [b"Header", b"two"]]
 
     def test_read_continued(self):
-        data = """
+        data = b"""
             Header: one
             \ttwo
             Header2: three
             \r\n
         """
         h = self._read(data)
-        assert h.lst == [["Header", "one\r\n two"], ["Header2", "three"]]
+        assert h.lst == [[b"Header", b"one\r\n two"], [b"Header2", b"three"]]
 
     def test_read_continued_err(self):
-        data = "\tfoo: bar\r\n"
+        data = b"\tfoo: bar\r\n"
         assert self._read(data, True) is None
 
     def test_read_err(self):
-        data = """
+        data = b"""
             foo
         """
         assert self._read(data) is None
@@ -280,24 +280,24 @@ class TestReadHeaders:
 class NoContentLengthHTTPHandler(tcp.BaseHandler):
 
     def handle(self):
-        self.wfile.write("HTTP/1.1 200 OK\r\n\r\nbar\r\n\r\n")
+        self.wfile.write(b"HTTP/1.1 200 OK\r\n\r\nbar\r\n\r\n")
         self.wfile.flush()
 
-
 class TestReadResponseNoContentLength(tservers.ServerTestBase):
+
     handler = NoContentLengthHTTPHandler
 
     def test_no_content_length(self):
         c = tcp.TCPClient(("127.0.0.1", self.port))
         c.connect()
         resp = http.read_response(c.rfile, "GET", None)
-        assert resp.content == "bar\r\n\r\n"
+        assert resp.content == b"bar\r\n\r\n"
 
 
 def test_read_response():
     def tst(data, method, limit, include_body=True):
-        data = textwrap.dedent(data)
-        r = io.StringIO(data)
+        data = textwrap.dedent(data).encode("utf-8")
+        r = io.BytesIO(data)
         return http.read_response(
             r, method, limit, include_body=include_body
         )
@@ -307,14 +307,14 @@ def test_read_response():
     data = """
         HTTP/1.1 200 OK
     """
-    assert tst(data, "GET", None) == (
-        (1, 1), 200, 'OK', odict.ODictCaseless(), ''
+    assert tst(data, b"GET", None) == (
+        (1, 1), 200, b'OK', odict.ODictCaseless(), b''
     )
     data = """
         HTTP/1.1 200
     """
     assert tst(data, "GET", None) == (
-        (1, 1), 200, '', odict.ODictCaseless(), ''
+        (1, 1), 200, b'', odict.ODictCaseless(), b''
     )
     data = """
         HTTP/x 200 OK
@@ -331,7 +331,7 @@ def test_read_response():
         HTTP/1.1 200 OK
     """
     assert tst(data, "GET", None) == (
-        (1, 1), 100, 'CONTINUE', odict.ODictCaseless(), ''
+        (1, 1), 100, b'CONTINUE', odict.ODictCaseless(), b''
     )
 
     data = """
@@ -340,8 +340,8 @@ def test_read_response():
 
         foo
     """
-    assert tst(data, "GET", None)[4] == 'foo'
-    assert tst(data, "HEAD", None)[4] == ''
+    assert tst(data, "GET", None)[4] == b'foo'
+    assert tst(data, "HEAD", None)[4] == b''
 
     data = """
         HTTP/1.1 200 OK
@@ -363,129 +363,129 @@ def test_read_response():
 def test_parse_url():
     assert not http.parse_url("")
 
-    u = "http://foo.com:8888/test"
+    u = b"http://foo.com:8888/test"
     s, h, po, pa = http.parse_url(u)
-    assert s == "http"
-    assert h == "foo.com"
+    assert s == b"http"
+    assert h == b"foo.com"
     assert po == 8888
-    assert pa == "/test"
+    assert pa == b"/test"
 
-    s, h, po, pa = http.parse_url("http://foo/bar")
-    assert s == "http"
-    assert h == "foo"
+    s, h, po, pa = http.parse_url(b"http://foo/bar")
+    assert s == b"http"
+    assert h == b"foo"
     assert po == 80
-    assert pa == "/bar"
+    assert pa == b"/bar"
 
-    s, h, po, pa = http.parse_url("http://user:pass@foo/bar")
-    assert s == "http"
-    assert h == "foo"
+    s, h, po, pa = http.parse_url(b"http://user:pass@foo/bar")
+    assert s == b"http"
+    assert h == b"foo"
     assert po == 80
-    assert pa == "/bar"
+    assert pa == b"/bar"
 
-    s, h, po, pa = http.parse_url("http://foo")
-    assert pa == "/"
+    s, h, po, pa = http.parse_url(b"http://foo")
+    assert pa == b"/"
 
-    s, h, po, pa = http.parse_url("https://foo")
+    s, h, po, pa = http.parse_url(b"https://foo")
     assert po == 443
 
-    assert not http.parse_url("https://foo:bar")
-    assert not http.parse_url("https://foo:")
+    assert not http.parse_url(b"https://foo:bar")
+    assert not http.parse_url(b"https://foo:")
 
     # Invalid IDNA
-    assert not http.parse_url("http://\xfafoo")
+    assert not http.parse_url(b"http://\xfafoo")
     # Invalid PATH
-    assert not http.parse_url("http:/\xc6/localhost:56121")
+    assert not http.parse_url(b"http:/\xc6/localhost:56121")
     # Null byte in host
-    assert not http.parse_url("http://foo\0")
+    assert not http.parse_url(b"http://foo\0")
     # Port out of range
-    assert not http.parse_url("http://foo:999999")
+    assert not http.parse_url(b"http://foo:999999")
     # Invalid IPv6 URL - see http://www.ietf.org/rfc/rfc2732.txt
-    assert not http.parse_url('http://lo[calhost')
+    assert not http.parse_url(b'http://lo[calhost')
 
 
 def test_parse_http_basic_auth():
-    vals = ("basic", "foo", "bar")
+    vals = (b"basic", b"foo", b"bar")
     assert http.parse_http_basic_auth(
         http.assemble_http_basic_auth(*vals)
     ) == vals
-    assert not http.parse_http_basic_auth("")
-    assert not http.parse_http_basic_auth("foo bar")
-    v = "basic " + binascii.b2a_base64("foo")
+    assert not http.parse_http_basic_auth(b"")
+    assert not http.parse_http_basic_auth(b"foo bar")
+    v = b"basic " + binascii.b2a_base64(b"foo")
     assert not http.parse_http_basic_auth(v)
 
 
 def test_get_request_line():
-    r = io.StringIO("\nfoo")
-    assert http.get_request_line(r) == "foo"
+    r = io.BytesIO(b"\nfoo")
+    assert http.get_request_line(r) == b"foo"
     assert not http.get_request_line(r)
 
 
 class TestReadRequest():
 
     def tst(self, data, **kwargs):
-        r = io.StringIO(data)
+        r = io.BytesIO(data)
         return http.read_request(r, **kwargs)
 
     def test_invalid(self):
         tutils.raises(
             "bad http request",
             self.tst,
-            "xxx"
+            b"xxx"
         )
         tutils.raises(
             "bad http request line",
             self.tst,
-            "get /\xff HTTP/1.1"
+            b"get /\xff HTTP/1.1"
         )
         tutils.raises(
             "invalid headers",
             self.tst,
-            "get / HTTP/1.1\r\nfoo"
+            b"get / HTTP/1.1\r\nfoo"
         )
         tutils.raises(
             tcp.NetLibDisconnect,
             self.tst,
-            "\r\n"
+            b"\r\n"
         )
 
     def test_asterisk_form_in(self):
-        v = self.tst("OPTIONS * HTTP/1.1")
-        assert v.form_in == "relative"
-        assert v.method == "OPTIONS"
+        v = self.tst(b"OPTIONS * HTTP/1.1")
+        assert v.form_in == b"relative"
+        assert v.method == b"OPTIONS"
 
     def test_absolute_form_in(self):
         tutils.raises(
             "Bad HTTP request line",
             self.tst,
-            "GET oops-no-protocol.com HTTP/1.1"
+            b"GET oops-no-protocol.com HTTP/1.1"
         )
-        v = self.tst("GET http://address:22/ HTTP/1.1")
-        assert v.form_in == "absolute"
+        v = self.tst(b"GET http://address:22/ HTTP/1.1")
+        assert v.form_in == b"absolute"
         assert v.port == 22
-        assert v.host == "address"
-        assert v.scheme == "http"
+        assert v.host == b"address"
+        assert v.scheme == b"http"
 
     def test_connect(self):
         tutils.raises(
             "Bad HTTP request line",
             self.tst,
-            "CONNECT oops-no-port.com HTTP/1.1"
+            b"CONNECT oops-no-port.com HTTP/1.1"
         )
-        v = self.tst("CONNECT foo.com:443 HTTP/1.1")
-        assert v.form_in == "authority"
-        assert v.method == "CONNECT"
+        v = self.tst(b"CONNECT foo.com:443 HTTP/1.1")
+        assert v.form_in == b"authority"
+        assert v.method == b"CONNECT"
         assert v.port == 443
-        assert v.host == "foo.com"
+        assert v.host == b"foo.com"
 
     def test_expect(self):
-        w = io.StringIO()
-        r = io.StringIO(
-            "GET / HTTP/1.1\r\n"
-            "Content-Length: 3\r\n"
-            "Expect: 100-continue\r\n\r\n"
-            "foobar",
+        w = io.BytesIO()
+        r = io.BytesIO(
+            b"GET / HTTP/1.1\r\n"
+            b"Content-Length: 3\r\n"
+            b"Expect: 100-continue\r\n\r\n"
+            b"foobar",
         )
         v = http.read_request(r, wfile=w)
-        assert w.getvalue() == "HTTP/1.1 100 Continue\r\n\r\n"
-        assert v.content == "foo"
-        assert r.read(3) == "bar"
+        assert w.getvalue() == b"HTTP/1.1 100 Continue\r\n\r\n"
+        assert v.content == b"foo"
+        assert r.read(3) == b"bar"

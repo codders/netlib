@@ -239,7 +239,7 @@ class Reader(_FileLike):
                 break
             else:
                 result += ch
-                if ch == '\n':
+                if ch == b'\n':
                     break
         return result
 
@@ -691,7 +691,7 @@ class TCPServer(object):
         client_address = Address(client_address)
         try:
             self.handle_client_connection(connection, client_address)
-        except:
+        except Exception as e:
             self.handle_error(connection, client_address)
         finally:
             close_socket(connection)
