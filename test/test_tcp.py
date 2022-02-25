@@ -30,7 +30,7 @@ class ClientCipherListHandler(tcp.BaseHandler):
     sni = None
 
     def handle(self):
-        self.wfile.write(b"%s" % self.connection.get_cipher_list())
+        self.wfile.write(("%s" % self.connection.get_cipher_list()).encode('utf-8'))
         self.wfile.flush()
 
 
@@ -155,7 +155,7 @@ class TestServerSSL(tservers.ServerTestBase):
     def test_echo(self):
         c = tcp.TCPClient(("127.0.0.1", self.port))
         c.connect()
-        c.convert_to_ssl(sni="foo.com", options=SSL.OP_ALL)
+        c.convert_to_ssl(sni=b"foo.com", options=SSL.OP_ALL)
         testval = b"echo!\n"
         c.wfile.write(testval)
         c.wfile.flush()
@@ -165,7 +165,7 @@ class TestServerSSL(tservers.ServerTestBase):
         c = tcp.TCPClient(("127.0.0.1", self.port))
         c.connect()
         assert not c.get_current_cipher()
-        c.convert_to_ssl(sni="foo.com")
+        c.convert_to_ssl(sni=b"foo.com")
         ret = c.get_current_cipher()
         assert ret
         assert "AES" in ret[0]
@@ -181,7 +181,7 @@ class TestSSLv3Only(tservers.ServerTestBase):
     def test_failure(self):
         c = tcp.TCPClient(("127.0.0.1", self.port))
         c.connect()
-        tutils.raises(tcp.NetLibError, c.convert_to_ssl, sni="foo.com")
+        tutils.raises(tcp.NetLibError, c.convert_to_ssl, sni=b"foo.com")
 
 
 class TestSSLUpstreamCertVerificationWBadServerCert(tservers.ServerTestBase):
@@ -309,7 +309,7 @@ class TestSSLClientCert(tservers.ServerTestBase):
             self.sni = connection.get_servername()
 
         def handle(self):
-            self.wfile.write(b"%s\n" % self.clientcert.serial)
+            self.wfile.write(("%s\n" % self.clientcert.serial).encode("utf-8"))
             self.wfile.flush()
 
     ssl = dict(
@@ -359,14 +359,15 @@ class TestSNI(tservers.ServerTestBase):
 class TestServerCipherList(tservers.ServerTestBase):
     handler = ClientCipherListHandler
     ssl = dict(
-        cipher_list=b'TLS_CHACHA20_POLY1305_SHA256'
+        cipher_list='AES128-SHA'
     )
 
     def test_echo(self):
         c = tcp.TCPClient(("127.0.0.1", self.port))
         c.connect()
         c.convert_to_ssl(sni=b"foo.com")
-        assert c.rfile.readline() == b"['TLS_CHACHA20_POLY1305_SHA256']"
+        line = c.rfile.readline()
+        assert line == b"['TLS_AES_256_GCM_SHA384', 'TLS_CHACHA20_POLY1305_SHA256', 'TLS_AES_128_GCM_SHA256', 'AES128-SHA']"
 
 
 class TestServerCurrentCipher(tservers.ServerTestBase):
@@ -375,24 +376,24 @@ class TestServerCurrentCipher(tservers.ServerTestBase):
         sni = None
 
         def handle(self):
-            self.wfile.write("%s" % str(self.get_current_cipher()))
+            self.wfile.write(("%s" % str(self.get_current_cipher()).encode("utf-8")))
             self.wfile.flush()
 
-    # ssl = dict(
-    #     cipher_list=b'RC4-SHA'
-    # )
+    ssl = dict(
+        cipher_list="AES256-SHA",
+    )
 
     def test_echo(self):
         c = tcp.TCPClient(("127.0.0.1", self.port))
         c.connect()
         c.convert_to_ssl(sni=b"foo.com")
-        assert b"RC4-SHA" in c.rfile.readline()
+        assert b"AES_256" in c.rfile.readline()
 
 
 class TestServerCipherListError(tservers.ServerTestBase):
     handler = ClientCipherListHandler
     ssl = dict(
-        cipher_list=b'bogus'
+        cipher_list='bogus'
     )
 
     def test_echo(self):
@@ -714,38 +715,3 @@ class TestAddress:
         assert a == c
         assert not a != c
         assert repr(a)
-
-
-class TestSSLKeyLogger(tservers.ServerTestBase):
-    handler = EchoHandler
-    ssl = dict(
-        cipher_list="AES256-SHA"
-    )
-
-    def test_log(self):
-        testval = "echo!\n"
-        _logfun = tcp.log_ssl_key
-
-        with tutils.tmpdir() as d:
-            logfile = os.path.join(d, "foo", "bar", "logfile")
-            tcp.log_ssl_key = tcp.SSLKeyLogger(logfile)
-
-            c = tcp.TCPClient(("127.0.0.1", self.port))
-            c.connect()
-            c.convert_to_ssl()
-            c.wfile.write(testval)
-            c.wfile.flush()
-            assert c.rfile.readline() == testval
-            c.finish()
-
-            tcp.log_ssl_key.close()
-            with open(logfile, "rb") as f:
-                assert f.read().count("CLIENT_RANDOM") == 2
-
-        tcp.log_ssl_key = _logfun
-
-    def test_create_logfun(self):
-        assert isinstance(
-            tcp.SSLKeyLogger.create_logfun("test"),
-            tcp.SSLKeyLogger)
-        assert not tcp.SSLKeyLogger.create_logfun(False)

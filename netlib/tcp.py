@@ -65,49 +65,6 @@ class NetLibTimeout(NetLibError):
 class NetLibSSLError(NetLibError):
     pass
 
-
-class SSLKeyLogger(object):
-
-    def __init__(self, filename):
-        self.filename = filename
-        self.f = None
-        self.lock = threading.Lock()
-
-    # required for functools.wraps, which pyOpenSSL uses.
-    __name__ = "SSLKeyLogger"
-
-    def __call__(self, connection, where, ret):
-        if where == SSL.SSL_CB_HANDSHAKE_DONE and ret == 1:
-            with self.lock:
-                if not self.f:
-                    d = os.path.dirname(self.filename)
-                    if not os.path.isdir(d):
-                        os.makedirs(d)
-                    self.f = open(self.filename, "ab")
-                    self.f.write(b"\r\n")
-                client_random = codecs.encode(connection.client_random(), "hex")
-                masterkey = codecs.encode(connection.master_key(), "hex")
-                self.f.write(
-                    b"CLIENT_RANDOM {} {}\r\n".format(
-                        client_random,
-                        masterkey))
-                self.f.flush()
-
-    def close(self):
-        with self.lock:
-            if self.f:
-                self.f.close()
-
-    @staticmethod
-    def create_logfun(filename):
-        if filename:
-            return SSLKeyLogger(filename)
-        return False
-
-log_ssl_key = SSLKeyLogger.create_logfun(
-    os.getenv("MITMPROXY_SSLKEYLOGFILE") or os.getenv("SSLKEYLOGFILE"))
-
-
 class _FileLike(object):
     BLOCKSIZE = 1024 * 32
 
@@ -441,10 +398,6 @@ class _Connection(object):
                 context.set_tmp_ecdh(OpenSSL.crypto.get_elliptic_curve('prime256v1'))
             except SSL.Error as v:
                 raise NetLibError("SSL cipher specification error: %s" % str(v))
-
-        # SSLKEYLOGFILE
-        if log_ssl_key:
-            context.set_info_callback(log_ssl_key)
 
         if OpenSSL._util.lib.Cryptography_HAS_ALPN:
             if alpn_protos is not None:
