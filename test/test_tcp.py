@@ -5,7 +5,7 @@ import socket
 import random
 import os
 import threading
-import unittest.mock
+import unittest.mock as mock
 
 from OpenSSL import SSL
 import OpenSSL
@@ -30,7 +30,7 @@ class ClientCipherListHandler(tcp.BaseHandler):
     sni = None
 
     def handle(self):
-        self.wfile.write("%s" % self.connection.get_cipher_list())
+        self.wfile.write(b"%s" % self.connection.get_cipher_list())
         self.wfile.flush()
 
 
@@ -49,7 +49,7 @@ class ALPNHandler(tcp.BaseHandler):
         if alp:
             self.wfile.write(b"%s" % alp)
         else:
-            self.wfile.write("NONE")
+            self.wfile.write(b"NONE")
         self.wfile.flush()
 
 
@@ -57,7 +57,7 @@ class TestServer(tservers.ServerTestBase):
     handler = EchoHandler
 
     def test_echo(self):
-        testval = "echo!\n"
+        testval = b"echo!\n"
         c = tcp.TCPClient(("127.0.0.1", self.port))
         c.connect()
         c.wfile.write(testval)
@@ -79,7 +79,7 @@ class TestServerBind(tservers.ServerTestBase):
     class handler(tcp.BaseHandler):
 
         def handle(self):
-            self.wfile.write(str(self.connection.getpeername()))
+            self.wfile.write(str(self.connection.getpeername()).encode("utf-8"))
             self.wfile.flush()
 
     def test_bind(self):
@@ -91,7 +91,7 @@ class TestServerBind(tservers.ServerTestBase):
                     ("127.0.0.1", self.port), source_address=(
                         "127.0.0.1", random_port))
                 c.connect()
-                assert c.rfile.readline() == str(("127.0.0.1", random_port))
+                assert c.rfile.readline() == str(("127.0.0.1", random_port)).encode("utf-8")
                 return
             except tcp.NetLibError:  # port probably already in use
                 pass
@@ -102,7 +102,7 @@ class TestServerIPv6(tservers.ServerTestBase):
     addr = tcp.Address(("localhost", 0), use_ipv6=True)
 
     def test_echo(self):
-        testval = "echo!\n"
+        testval = b"echo!\n"
         c = tcp.TCPClient(tcp.Address(("::1", self.port), use_ipv6=True))
         c.connect()
         c.wfile.write(testval)
@@ -359,14 +359,14 @@ class TestSNI(tservers.ServerTestBase):
 class TestServerCipherList(tservers.ServerTestBase):
     handler = ClientCipherListHandler
     ssl = dict(
-        cipher_list=b'RC4-SHA'
+        cipher_list=b'TLS_CHACHA20_POLY1305_SHA256'
     )
 
     def test_echo(self):
         c = tcp.TCPClient(("127.0.0.1", self.port))
         c.connect()
         c.convert_to_ssl(sni=b"foo.com")
-        assert c.rfile.readline() == b"['RC4-SHA']"
+        assert c.rfile.readline() == b"['TLS_CHACHA20_POLY1305_SHA256']"
 
 
 class TestServerCurrentCipher(tservers.ServerTestBase):
@@ -378,9 +378,9 @@ class TestServerCurrentCipher(tservers.ServerTestBase):
             self.wfile.write("%s" % str(self.get_current_cipher()))
             self.wfile.flush()
 
-    ssl = dict(
-        cipher_list=b'RC4-SHA'
-    )
+    # ssl = dict(
+    #     cipher_list=b'RC4-SHA'
+    # )
 
     def test_echo(self):
         c = tcp.TCPClient(("127.0.0.1", self.port))
@@ -530,7 +530,7 @@ class TestNoSSLNoALPNClient(tservers.ServerTestBase):
         c = tcp.TCPClient(("127.0.0.1", self.port))
         c.connect()
         assert c.get_alpn_proto_negotiated() == ""
-        assert c.rfile.readline().strip() == "NONE"
+        assert c.rfile.readline().strip() == b"NONE"
 
 
 class TestSSLTimeOut(tservers.ServerTestBase):
@@ -580,65 +580,65 @@ class TestTCPClient:
 class TestFileLike:
 
     def test_blocksize(self):
-        s = io.StringIO("1234567890abcdefghijklmnopqrstuvwxyz")
+        s = io.BytesIO(b"1234567890abcdefghijklmnopqrstuvwxyz")
         s = tcp.Reader(s)
         s.BLOCKSIZE = 2
-        assert s.read(1) == "1"
-        assert s.read(2) == "23"
-        assert s.read(3) == "456"
-        assert s.read(4) == "7890"
+        assert s.read(1) == b"1"
+        assert s.read(2) == b"23"
+        assert s.read(3) == b"456"
+        assert s.read(4) == b"7890"
         d = s.read(-1)
-        assert d.startswith("abc") and d.endswith("xyz")
+        assert d.startswith(b"abc") and d.endswith(b"xyz")
 
     def test_wrap(self):
-        s = io.StringIO("foobar\nfoobar")
+        s = io.BytesIO(b"foobar\nfoobar")
         s.flush()
         s = tcp.Reader(s)
-        assert s.readline() == "foobar\n"
-        assert s.readline() == "foobar"
+        assert s.readline() == b"foobar\n"
+        assert s.readline() == b"foobar"
         # Test __getattr__
         assert s.isatty
 
     def test_limit(self):
-        s = io.StringIO("foobar\nfoobar")
+        s = io.BytesIO(b"foobar\nfoobar")
         s = tcp.Reader(s)
-        assert s.readline(3) == "foo"
+        assert s.readline(3) == b"foo"
 
     def test_limitless(self):
-        s = io.StringIO("f" * (50 * 1024))
+        s = io.BytesIO(b"f" * (50 * 1024))
         s = tcp.Reader(s)
         ret = s.read(-1)
         assert len(ret) == 50 * 1024
 
     def test_readlog(self):
-        s = io.StringIO("foobar\nfoobar")
+        s = io.BytesIO(b"foobar\nfoobar")
         s = tcp.Reader(s)
         assert not s.is_logging()
         s.start_log()
         assert s.is_logging()
         s.readline()
-        assert s.get_log() == "foobar\n"
+        assert s.get_log() == b"foobar\n"
         s.read(1)
-        assert s.get_log() == "foobar\nf"
+        assert s.get_log() == b"foobar\nf"
         s.start_log()
-        assert s.get_log() == ""
+        assert s.get_log() == b""
         s.read(1)
-        assert s.get_log() == "o"
+        assert s.get_log() == b"o"
         s.stop_log()
         tutils.raises(ValueError, s.get_log)
 
     def test_writelog(self):
-        s = io.StringIO()
+        s = io.BytesIO()
         s = tcp.Writer(s)
         s.start_log()
         assert s.is_logging()
-        s.write("x")
-        assert s.get_log() == "x"
-        s.write("x")
-        assert s.get_log() == "xx"
+        s.write(b"x")
+        assert s.get_log() == b"x"
+        s.write(b"x")
+        assert s.get_log() == b"xx"
 
     def test_writer_flush_error(self):
-        s = io.StringIO()
+        s = io.BytesIO()
         s = tcp.Writer(s)
         o = mock.MagicMock()
         o.flush = mock.MagicMock(side_effect=socket.error)
@@ -646,7 +646,7 @@ class TestFileLike:
         tutils.raises(tcp.NetLibDisconnect, s.flush)
 
     def test_reader_read_error(self):
-        s = io.StringIO("foobar\nfoobar")
+        s = io.BytesIO(b"foobar\nfoobar")
         s = tcp.Reader(s)
         o = mock.MagicMock()
         o.read = mock.MagicMock(side_effect=socket.error)
@@ -654,14 +654,14 @@ class TestFileLike:
         tutils.raises(tcp.NetLibDisconnect, s.read, 10)
 
     def test_reset_timestamps(self):
-        s = io.StringIO("foobar\nfoobar")
+        s = io.BytesIO(b"foobar\nfoobar")
         s = tcp.Reader(s)
         s.first_byte_timestamp = 500
         s.reset_timestamps()
         assert not s.first_byte_timestamp
 
     def test_first_byte_timestamp_updated_on_read(self):
-        s = io.StringIO("foobar\nfoobar")
+        s = io.BytesIO(b"foobar\nfoobar")
         s = tcp.Reader(s)
         s.read(1)
         assert s.first_byte_timestamp
@@ -670,7 +670,7 @@ class TestFileLike:
         assert s.first_byte_timestamp == expected
 
     def test_first_byte_timestamp_updated_on_readline(self):
-        s = io.StringIO("foobar\nfoobar\nfoobar")
+        s = io.BytesIO(b"foobar\nfoobar\nfoobar")
         s = tcp.Reader(s)
         s.readline()
         assert s.first_byte_timestamp
@@ -697,7 +697,7 @@ class TestFileLike:
         tutils.raises(tcp.NetLibDisconnect, s.readline, 10)
 
     def test_reader_incomplete_error(self):
-        s = io.StringIO("foobar")
+        s = io.BytesIO(b"foobar")
         s = tcp.Reader(s)
         tutils.raises(tcp.NetLibIncomplete, s.safe_read, 10)
 

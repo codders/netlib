@@ -132,10 +132,14 @@ class ODict(object):
 
     def format(self):
         elements = []
+        def str_to_bytes(s):
+            if hasattr(s, 'encode'):
+                return s.encode('utf-8')
+            return s
         for itm in self.lst:
-            elements.append(itm[0] + ": " + str(itm[1]))
-        elements.append("")
-        return "\r\n".join(elements)
+            elements.append(str_to_bytes(itm[0]) + b": " + str_to_bytes(itm[1]))
+        elements.append(b"")
+        return b"\r\n".join(elements)
 
     def in_any(self, key, value, caseless=False):
         """

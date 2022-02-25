@@ -5,6 +5,9 @@ from . import tutils
 class TestODict:
 
     def setUp(self):
+        self.setup_method()
+
+    def setup_method(self):
         self.od = odict.ODict()
 
     def test_repr(self):
@@ -17,14 +20,14 @@ class TestODict:
         tutils.raises(ValueError, h.__setitem__, "key", "foo")
 
     def test_dictToHeader1(self):
-        self.od.add("one", "uno")
-        self.od.add("two", "due")
-        self.od.add("two", "tre")
+        self.od.add(b"one", b"uno")
+        self.od.add(b"two", b"due")
+        self.od.add(b"two", b"tre")
         expected = [
-            "one: uno\r\n",
-            "two: due\r\n",
-            "two: tre\r\n",
-            "\r\n"
+            b"one: uno\r\n",
+            b"two: due\r\n",
+            b"two: tre\r\n",
+            b"\r\n"
         ]
         out = self.od.format()
         for i in expected:
@@ -42,9 +45,9 @@ class TestODict:
         assert b == self.od
 
     def test_dictToHeader2(self):
-        self.od["one"] = ["uno"]
-        expected1 = "one: uno\r\n"
-        expected2 = "\r\n"
+        self.od[b"one"] = [b"uno"]
+        expected1 = b"one: uno\r\n"
+        expected2 = b"\r\n"
         out = self.od.format()
         assert out.find(expected1) >= 0
         assert out.find(expected2) >= 0
@@ -126,6 +129,9 @@ class TestODict:
 class TestODictCaseless:
 
     def setUp(self):
+        self.setup_method()
+
+    def setup_method(self):
         self.od = odict.ODictCaseless()
 
     def test_override(self):

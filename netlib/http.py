@@ -584,12 +584,12 @@ def read_response(rfile, request_method, body_size_limit, include_body=True):
 
 
 def request_preamble(method, resource, http_major="1", http_minor="1"):
-    return '%s %s HTTP/%s.%s' % (
+    return ('%s %s HTTP/%s.%s' % (
         method, resource, http_major, http_minor
-    )
+    )).encode("utf-8")
 
 
 def response_preamble(code, message=None, http_major="1", http_minor="1"):
     if message is None:
         message = http_status.RESPONSES.get(code)
-    return 'HTTP/%s.%s %s %s' % (http_major, http_minor, code, message)
+    return ('HTTP/%s.%s %s %s' % (http_major, http_minor, code, message)).encode('utf-8')

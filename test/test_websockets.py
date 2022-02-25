@@ -33,9 +33,9 @@ class WebSocketsEchoHandler(tcp.BaseHandler):
         req = http.read_request(self.rfile)
         key = websockets.check_client_handshake(req.headers)
 
-        self.wfile.write(http.response_preamble(101) + "\r\n")
+        self.wfile.write(http.response_preamble(101) + b"\r\n")
         headers = websockets.server_handshake_headers(key)
-        self.wfile.write(headers.format() + "\r\n")
+        self.wfile.write(headers.format() + b"\r\n")
         self.wfile.flush()
         self.handshake_done = True
 
@@ -54,10 +54,10 @@ class WebSocketsClient(tcp.TCPClient):
         super(WebSocketsClient, self).connect()
 
         preamble = http.request_preamble("GET", "/")
-        self.wfile.write(preamble + "\r\n")
+        self.wfile.write(preamble + b"\r\n")
         headers = websockets.client_handshake_headers()
-        self.client_nonce = headers.get_first("sec-websocket-key")
-        self.wfile.write(headers.format() + "\r\n")
+        self.client_nonce = headers.get_first(b"sec-websocket-key")
+        self.wfile.write(headers.format() + b"\r\n")
         self.wfile.flush()
 
         resp = http.read_response(self.rfile, "get", None)
@@ -89,7 +89,7 @@ class TestWebSockets(tservers.ServerTestBase):
         assert response == msg
 
     def test_simple_echo(self):
-        self.echo("hello I'm the client")
+        self.echo(b"hello I'm the client")
 
     def test_frame_sizes(self):
         # length can fit in the the 7 bit payload length
@@ -130,15 +130,15 @@ class TestWebSockets(tservers.ServerTestBase):
         assert websockets.Frame.from_bytes(bytes).to_bytes() == bytes
 
     def test_check_server_handshake(self):
-        headers = websockets.server_handshake_headers("key")
+        headers = websockets.server_handshake_headers(b"key")
         assert websockets.check_server_handshake(headers)
-        headers["Upgrade"] = ["not_websocket"]
+        headers[b"Upgrade"] = [b"not_websocket"]
         assert not websockets.check_server_handshake(headers)
 
     def test_check_client_handshake(self):
-        headers = websockets.client_handshake_headers("key")
-        assert websockets.check_client_handshake(headers) == "key"
-        headers["Upgrade"] = ["not_websocket"]
+        headers = websockets.client_handshake_headers(b"key")
+        assert websockets.check_client_handshake(headers) == b"key"
+        headers[b"Upgrade"] = [b"not_websocket"]
         assert not websockets.check_client_handshake(headers)
 
 
@@ -148,9 +148,9 @@ class BadHandshakeHandler(WebSocketsEchoHandler):
         client_hs = http.read_request(self.rfile)
         websockets.check_client_handshake(client_hs.headers)
 
-        self.wfile.write(http.response_preamble(101) + "\r\n")
-        headers = websockets.server_handshake_headers("malformed key")
-        self.wfile.write(headers.format() + "\r\n")
+        self.wfile.write(http.response_preamble(101) + b"\r\n")
+        headers = websockets.server_handshake_headers(b"malformed key")
+        self.wfile.write(headers.format() + b"\r\n")
         self.wfile.flush()
         self.handshake_done = True
 
@@ -166,7 +166,7 @@ class TestBadHandshake(tservers.ServerTestBase):
     def test(self):
         client = WebSocketsClient(("127.0.0.1", self.port))
         client.connect()
-        client.send_message("hello")
+        client.send_message(b"hello")
 
 
 class TestFrameHeader:
@@ -187,7 +187,7 @@ class TestFrameHeader:
         round(payload_length=1000)
         round(payload_length=10000)
         round(opcode=websockets.OPCODE.PING)
-        round(masking_key="test")
+        round(masking_key=b"test")
 
     def test_human_readable(self):
         f = websockets.FrameHeader(
@@ -200,7 +200,7 @@ class TestFrameHeader:
         assert f.human_readable()
 
     def test_funky(self):
-        f = websockets.FrameHeader(masking_key="test", mask=False)
+        f = websockets.FrameHeader(masking_key=b"test", mask=False)
         bytes = f.to_bytes()
         f2 = websockets.FrameHeader.from_file(tutils.treader(bytes))
         assert not f2.mask
@@ -226,14 +226,14 @@ class TestFrame:
     def test_roundtrip(self):
         def round(*args, **kwargs):
             f = websockets.Frame(*args, **kwargs)
-            bytes = f.to_bytes()
-            f2 = websockets.Frame.from_file(tutils.treader(bytes))
+            test_bytes = f.to_bytes()
+            f2 = websockets.Frame.from_file(tutils.treader(test_bytes))
             assert f == f2
-        round("test")
-        round("test", fin=1)
-        round("test", rsv1=1)
-        round("test", opcode=websockets.OPCODE.PING)
-        round("test", masking_key="test")
+        round(b"test")
+        round(b"test", fin=1)
+        round(b"test", rsv1=1)
+        round(b"test", opcode=websockets.OPCODE.PING)
+        round(b"test", masking_key=b"test")
 
     def test_human_readable(self):
         f = websockets.Frame()
@@ -242,15 +242,15 @@ class TestFrame:
 
 def test_masker():
     tests = [
-        ["a"],
-        ["four"],
-        ["fourf"],
-        ["fourfive"],
-        ["a", "aasdfasdfa", "asdf"],
-        ["a" * 50, "aasdfasdfa", "asdf"],
+        [b"a"],
+        [b"four"],
+        [b"fourf"],
+        [b"fourfive"],
+        [b"a", b"aasdfasdfa", b"asdf"],
+        [b"a" * 50, b"aasdfasdfa", b"asdf"],
     ]
     for i in tests:
-        m = websockets.Masker("abcd")
-        data = "".join([m(t) for t in i])
-        data2 = websockets.Masker("abcd")(data)
-        assert data2 == "".join(i)
+        m = websockets.Masker(b"abcd")
+        data = b"".join([m(t) for t in i])
+        data2 = websockets.Masker(b"abcd")(data)
+        assert data2 == b"".join(i)

@@ -91,17 +91,17 @@ class WSGIAdaptor(object):
             Make a best-effort attempt to write an error page. If headers are
             already sent, we just bung the error into the page.
         """
-        c = """
+        c = b"""
             <html>
                 <h1>Internal Server Error</h1>
                 <pre>%s"</pre>
             </html>
         """ % s
         if not headers_sent:
-            soc.write("HTTP/1.1 500 Internal Server Error\r\n")
-            soc.write("Content-Type: text/html\r\n")
-            soc.write("Content-Length: %s\r\n" % len(c))
-            soc.write("\r\n")
+            soc.write(b"HTTP/1.1 500 Internal Server Error\r\n")
+            soc.write(b"Content-Type: text/html\r\n")
+            soc.write(b"Content-Length: %s\r\n" % len(c))
+            soc.write(b"\r\n")
         soc.write(c)
 
     def serve(self, request, soc, **env):
@@ -114,17 +114,20 @@ class WSGIAdaptor(object):
 
         def write(data):
             if not state["headers_sent"]:
-                soc.write("HTTP/1.1 %s\r\n" % state["status"])
+                soc.write(b"HTTP/1.1 %s\r\n" % state["status"].encode("utf-8"))
                 h = state["headers"]
                 if 'server' not in h:
-                    h["Server"] = [self.sversion]
+                    h[b"Server"] = [self.sversion.encode("utf-8")]
                 if 'date' not in h:
-                    h["Date"] = [date_time_string()]
+                    h[b"Date"] = [date_time_string().encode("utf-8")]
                 soc.write(h.format())
-                soc.write("\r\n")
+                soc.write(b"\r\n")
                 state["headers_sent"] = True
             if data:
-                soc.write(data)
+                if hasattr(data, 'encode'):
+                    soc.write(data.encode('utf-8'))
+                else:
+                    soc.write(data)
             soc.flush()
 
         def start_response(status, headers, exc_info=None):
@@ -140,7 +143,7 @@ class WSGIAdaptor(object):
             state["headers"] = odict.ODictCaseless(headers)
             return write
 
-        errs = io.StringIO()
+        errs = io.BytesIO()
         try:
             dataiter = self.app(
                 self.make_environ(request, errs, **env), start_response
@@ -148,12 +151,12 @@ class WSGIAdaptor(object):
             for i in dataiter:
                 write(i)
             if not state["headers_sent"]:
-                write("")
+                write(b"")
         except Exception:
             try:
                 s = traceback.format_exc()
-                errs.write(s)
-                self.error_page(soc, state["headers_sent"], s)
+                errs.write(s.encode("utf-8"))
+                self.error_page(soc, state["headers_sent"], s.encode('utf-8'))
             except Exception:    # pragma: no cover
                 pass
         return errs.getvalue()

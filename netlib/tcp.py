@@ -145,7 +145,7 @@ class _FileLike(object):
         """
         if not self.is_logging():
             raise ValueError("Not logging!")
-        return "".join(self._log)
+        return b"".join(self._log)
 
     def add_log(self, v):
         if self.is_logging():
@@ -215,9 +215,9 @@ class Reader(_FileLike):
             except SSL.SysCallError as e:
                 if e.args == (-1, 'Unexpected EOF'):
                     break
-                raise NetLibSSLError(e.message)
+                raise NetLibSSLError(e)
             except SSL.Error as e:
-                raise NetLibSSLError(e.message)
+                raise NetLibSSLError(e)
             self.first_byte_timestamp = self.first_byte_timestamp or time.time()
             if not data:
                 break

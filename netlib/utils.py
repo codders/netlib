@@ -1,5 +1,6 @@
 from __future__ import (absolute_import, print_function, division)
 import os.path
+import codecs
 
 def isascii(s):
     try:
@@ -11,7 +12,10 @@ def isascii(s):
 
 # best way to do it in python 2.x
 def bytes_to_int(i):
-    return int(i.encode('hex'), 16)
+    if type(i) == bytes:
+        return int(codecs.encode(i, 'hex'), 16)
+    return int(i)
+
 
 
 def cleanBin(s, fixspacing=False):

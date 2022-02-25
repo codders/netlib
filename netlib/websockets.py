@@ -4,6 +4,7 @@ import hashlib
 import os
 import struct
 import io
+import codecs
 
 from . import utils, odict, tcp
 
@@ -19,8 +20,8 @@ from . import utils, odict, tcp
 
 # The magic sha that websocket servers must know to prove they understand
 # RFC6455
-websockets_magic = '258EAFA5-E914-47DA-95CA-C5AB0DC85B11'
-VERSION = "13"
+websockets_magic = b'258EAFA5-E914-47DA-95CA-C5AB0DC85B11'
+VERSION = b"13"
 MAX_16_BIT_INT = (1 << 16)
 MAX_64_BIT_INT = (1 << 64)
 
@@ -51,9 +52,9 @@ class Masker(object):
         self.offset = 0
 
     def mask(self, offset, data):
-        result = ""
+        result = b""
         for c in data:
-            result += chr(ord(c) ^ self.masks[offset % 4])
+            result += bytes([c ^ self.masks[offset % 4]])
             offset += 1
         return result
 
@@ -72,12 +73,12 @@ def client_handshake_headers(key=None, version=VERSION):
         Returns an instance of ODictCaseless
     """
     if not key:
-        key = base64.b64encode(os.urandom(16)).decode('utf-8')
+        key = base64.b64encode(os.urandom(16))
     return odict.ODictCaseless([
-        ('Connection', 'Upgrade'),
-        ('Upgrade', 'websocket'),
-        ('Sec-WebSocket-Key', key),
-        ('Sec-WebSocket-Version', version)
+        (b'Connection', b'Upgrade'),
+        (b'Upgrade', b'websocket'),
+        (b'Sec-WebSocket-Key', key),
+        (b'Sec-WebSocket-Version', version)
     ])
 
 
@@ -87,9 +88,9 @@ def server_handshake_headers(key):
     """
     return odict.ODictCaseless(
         [
-            ('Connection', 'Upgrade'),
-            ('Upgrade', 'websocket'),
-            ('Sec-WebSocket-Accept', create_server_nonce(key))
+            (b'Connection', b'Upgrade'),
+            (b'Upgrade', b'websocket'),
+            (b'Sec-WebSocket-Accept', create_server_nonce(key))
         ]
     )
 
@@ -109,20 +110,20 @@ def make_length_code(length):
 
 
 def check_client_handshake(headers):
-    if headers.get_first("upgrade", None) != "websocket":
+    if headers.get_first(b"upgrade", None) != b"websocket":
         return
-    return headers.get_first('sec-websocket-key')
+    return headers.get_first(b'sec-websocket-key')
 
 
 def check_server_handshake(headers):
-    if headers.get_first("upgrade", None) != "websocket":
+    if headers.get_first(b"upgrade", None) != b"websocket":
         return
-    return headers.get_first('sec-websocket-accept')
+    return headers.get_first(b'sec-websocket-accept')
 
 
 def create_server_nonce(client_nonce):
     return base64.b64encode(
-        hashlib.sha1(client_nonce + websockets_magic).hexdigest().decode('hex')
+        codecs.decode(hashlib.sha1(client_nonce + websockets_magic).hexdigest(), 'hex')
     )
 
 
@@ -159,7 +160,7 @@ class FrameHeader(object):
 
         if mask is DEFAULT and masking_key is DEFAULT:
             self.mask = False
-            self.masking_key = ""
+            self.masking_key = b""
         elif mask is DEFAULT:
             self.mask = 1
             self.masking_key = masking_key
@@ -199,7 +200,7 @@ class FrameHeader(object):
 
         second_byte = utils.setbit(self.length_code, 7, self.mask)
 
-        b = chr(first_byte) + chr(second_byte)
+        b = bytes([first_byte, second_byte])
 
         if self.payload_length < 126:
             pass
