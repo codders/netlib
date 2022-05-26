@@ -451,7 +451,7 @@ class TestReadRequest():
     def test_asterisk_form_in(self):
         v = self.tst(b"OPTIONS * HTTP/1.1")
         assert v.form_in == "relative"
-        assert v.method == b"OPTIONS"
+        assert v.method == "OPTIONS"
 
     def test_absolute_form_in(self):
         tutils.raises(
@@ -462,8 +462,8 @@ class TestReadRequest():
         v = self.tst(b"GET http://address:22/ HTTP/1.1")
         assert v.form_in == "absolute"
         assert v.port == 22
-        assert v.host == b"address"
-        assert v.scheme == b"http"
+        assert v.host == "address"
+        assert v.scheme == "http"
 
     def test_connect(self):
         tutils.raises(
@@ -473,9 +473,9 @@ class TestReadRequest():
         )
         v = self.tst(b"CONNECT foo.com:443 HTTP/1.1")
         assert v.form_in == "authority"
-        assert v.method == b"CONNECT"
+        assert v.method == "CONNECT"
         assert v.port == 443
-        assert v.host == b"foo.com"
+        assert v.host == "foo.com"
 
     def test_expect(self):
         w = io.BytesIO()

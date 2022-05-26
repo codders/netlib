@@ -436,6 +436,10 @@ Request = collections.namedtuple(
     ]
 )
 
+def smart_unicode(s):
+    if isinstance(s, bytes):
+        return s.decode('utf-8')
+    return s
 
 def read_request(rfile, include_body=True, body_size_limit=None, wfile=None):
     """
@@ -516,11 +520,11 @@ def read_request(rfile, include_body=True, body_size_limit=None, wfile=None):
 
     return Request(
         form_in,
-        method,
-        scheme,
-        host,
+        smart_unicode(method),
+        smart_unicode(scheme),
+        smart_unicode(host),
         port,
-        path,
+        smart_unicode(path),
         httpversion,
         headers,
         content
