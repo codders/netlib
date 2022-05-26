@@ -470,14 +470,14 @@ def read_request(rfile, include_body=True, body_size_limit=None, wfile=None):
     method, path, httpversion = request_line_parts
 
     if path == b'*' or path.startswith(b"/"):
-        form_in = b"relative"
+        form_in = "relative"
         if not utils.isascii(path):
             raise HttpError(
                 400,
                 "Bad HTTP request line: %s" % repr(request_line)
             )
     elif method.upper() == b'CONNECT':
-        form_in = b"authority"
+        form_in = "authority"
         r = parse_init_connect(request_line)
         if not r:
             raise HttpError(
@@ -487,7 +487,7 @@ def read_request(rfile, include_body=True, body_size_limit=None, wfile=None):
         host, port, _ = r
         path = None
     else:
-        form_in = b"absolute"
+        form_in = "absolute"
         r = parse_init_proxy(request_line)
         if not r:
             raise HttpError(

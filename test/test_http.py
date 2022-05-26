@@ -450,7 +450,7 @@ class TestReadRequest():
 
     def test_asterisk_form_in(self):
         v = self.tst(b"OPTIONS * HTTP/1.1")
-        assert v.form_in == b"relative"
+        assert v.form_in == "relative"
         assert v.method == b"OPTIONS"
 
     def test_absolute_form_in(self):
@@ -460,7 +460,7 @@ class TestReadRequest():
             b"GET oops-no-protocol.com HTTP/1.1"
         )
         v = self.tst(b"GET http://address:22/ HTTP/1.1")
-        assert v.form_in == b"absolute"
+        assert v.form_in == "absolute"
         assert v.port == 22
         assert v.host == b"address"
         assert v.scheme == b"http"
@@ -472,7 +472,7 @@ class TestReadRequest():
             b"CONNECT oops-no-port.com HTTP/1.1"
         )
         v = self.tst(b"CONNECT foo.com:443 HTTP/1.1")
-        assert v.form_in == b"authority"
+        assert v.form_in == "authority"
         assert v.method == b"CONNECT"
         assert v.port == 443
         assert v.host == b"foo.com"

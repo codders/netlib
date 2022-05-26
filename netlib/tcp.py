@@ -129,6 +129,8 @@ class Writer(_FileLike):
             May raise NetLibDisconnect
         """
         if v:
+            if isinstance(v, str):
+                v = v.encode('utf-8')
             self.first_byte_timestamp = self.first_byte_timestamp or time.time()
             try:
                 if hasattr(self.o, "sendall"):
@@ -391,6 +393,8 @@ class _Connection(object):
 
         # Cipher List
         if cipher_list:
+            if isinstance(cipher_list, str):
+                cipher_list = cipher_list.encode('utf-8')
             try:
                 context.set_cipher_list(cipher_list)
 
