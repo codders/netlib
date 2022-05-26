@@ -161,6 +161,8 @@ def get_header_tokens(headers, key):
         tokens, and headers can be set multiple times.
     """
     toks = []
+    if not key in headers:
+        return toks
     for i in headers[key]:
         for j in i.split(","):
             toks.append(j.strip())
