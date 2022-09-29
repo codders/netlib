@@ -27,6 +27,10 @@ rD693XKIHUCWOjMh1if6omGXKHH40QuME2gNa50+YPn1iYDl88uDbbMCAQI=
 -----END DH PARAMETERS-----
 """
 
+def str_to_bytes(s):
+    if hasattr(s, 'encode'):
+        return s.encode('utf-8')
+    return s
 
 def create_ca(o, cn, exp):
     key = OpenSSL.crypto.PKey()
@@ -285,10 +289,10 @@ class CertStore(object):
 
     @staticmethod
     def asterisk_forms(dn):
-        parts = dn.split(b".")
+        parts = str_to_bytes(dn).split(b".")
         parts.reverse()
         curr_dn = b""
-        dn_forms = ["*"]
+        dn_forms = [b"*"]
         for part in parts[:-1]:
             curr_dn = b"." + part + curr_dn  # .example.com
             dn_forms.append(b"*" + curr_dn)   # *.example.com
