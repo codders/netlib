@@ -670,9 +670,9 @@ class TCPServer(object):
                         args=(connection, client_address),
                         name="ConnectionThread (%s:%s -> %s:%s)" %
                              (client_address[0], client_address[1],
-                              self.address.host, self.address.port)
+                              self.address.host, self.address.port),
+                        daemon=True
                     )
-                    t.setDaemon(1)
                     try:
                         t.start()
                     except threading.ThreadError:
