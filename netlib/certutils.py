@@ -89,7 +89,7 @@ def dummy_cert(privkey, cacert, commonname, sans):
     """
     ss = []
     for i in sans:
-        ss.append(b"DNS: %s" % i)
+        ss.append(b"DNS: %s" % str_to_bytes(i))
     ss = b", ".join(ss)
 
     cert = OpenSSL.crypto.X509()
